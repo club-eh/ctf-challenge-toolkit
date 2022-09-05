@@ -1,3 +1,5 @@
+# isort: skip_file
+
 # handle toml import here for other modules
 import sys
 if sys.version_info >= (3, 11):

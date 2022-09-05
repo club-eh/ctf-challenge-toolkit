@@ -6,11 +6,11 @@ import enum
 from pathlib import Path
 
 import attrs
+import rich.box
 from rich.columns import Columns
 from rich.console import RenderableType
 from rich.table import Table
 from rich.text import Text
-import rich.box
 
 from cctk.rt import CONSOLE
 

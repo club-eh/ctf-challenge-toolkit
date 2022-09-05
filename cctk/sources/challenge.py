@@ -10,11 +10,10 @@ import marshmallow
 
 from cctk import tomllib
 from cctk.constants import CHALLENGE_CONFIG_FILENAME
-from cctk.sources.repository import ChallengeRepo
 from cctk.schemas.challenge import ChallengeConfigSchema
 from cctk.schemas.formatting import format_validation_exception
-from cctk.validation import (Severity, Source, ValidationBook,
-                             ValidationError)
+from cctk.sources.repository import ChallengeRepo
+from cctk.validation import Severity, Source, ValidationBook, ValidationError
 
 
 class ChallengeDifficulty(enum.Enum):

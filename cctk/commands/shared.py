@@ -2,15 +2,15 @@
 
 from pathlib import Path
 
+import rich.box
 from rich.panel import Panel
 from rich.rule import Rule
 from rich.table import Table
 from rich.text import Text
-import rich.box
 
+from cctk.rt import CONSOLE
 from cctk.sources.challenge import Challenge
 from cctk.sources.repository import ChallengeRepo
-from cctk.rt import CONSOLE
 from cctk.validation import Severity, ValidationBook, ValidationError
 
 

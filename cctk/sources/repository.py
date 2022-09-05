@@ -13,8 +13,7 @@ from cctk import tomllib
 from cctk.constants import CHALLENGE_CONFIG_FILENAME, REPO_CONFIG_FILENAME
 from cctk.schemas.formatting import format_validation_exception
 from cctk.schemas.repository import ChallengeRepoConfigSchema
-from cctk.validation import (Severity, Source, ValidationBook,
-                             ValidationError)
+from cctk.validation import Severity, Source, ValidationBook, ValidationError
 
 
 @attrs.define(frozen=True)

@@ -1,7 +1,7 @@
 import click
 
-from cctk.constants import TOOLKIT_VERSION
 from cctk.commands import root
+from cctk.constants import TOOLKIT_VERSION
 
 
 @root.command()
