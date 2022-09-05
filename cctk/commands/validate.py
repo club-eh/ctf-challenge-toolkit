@@ -29,15 +29,15 @@ def validate(ctx: click.Context, challenges: tuple[str]):
 	If none are specified, validation is performed on all challenges in the repository.
 	"""
 
-	app_ctx: AppConfig = ctx.obj
-	assert app_ctx.repo_path is not None
+	app_cfg: AppConfig = ctx.ensure_object(AppConfig)
+	assert app_cfg.repo_path is not None
 
 	# initialize validation book
 	validation_book = ValidationBook()
 
 	# load repo and challenge data
 	try:
-		deploy_source = DeploySource(validation_book, app_ctx.repo_path, list(challenges) if len(challenges) > 0 else None, ctx.obj.verbose)
+		deploy_source = DeploySource(validation_book, app_cfg.repo_path, list(challenges) if len(challenges) > 0 else None, ctx.obj.verbose)
 	except (FatalValidationError, ValidationError):
 		raise SystemExit(1)
 

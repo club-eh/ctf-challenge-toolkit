@@ -24,22 +24,21 @@ from cctk.types import AppConfig
 @click.option("-v", "--verbose", is_flag=True, help="Show more verbose information.")
 @click.pass_context
 def root(ctx: click.Context, repo: str | None, verbose: bool):
-	# ensure ctx.obj exists
-	ctx.ensure_object(AppConfig)
-	assert isinstance(ctx.obj, AppConfig)
+	# create app config object
+	app_cfg = ctx.ensure_object(AppConfig)
 
 	# store verbose setting
-	ctx.obj.verbose = verbose
+	app_cfg.verbose = verbose
 
 	# determine repo path
 	if repo is None:
 		# default to cwd
-		ctx.obj.repo_path = Path(".")
+		app_cfg.repo_path = Path(".")
 	else:
-		ctx.obj.repo_path = Path(repo)
+		app_cfg.repo_path = Path(repo)
 
 	# log location of challenge repo
-	CONSOLE.print(f"Using challenge repo at {str(ctx.obj.repo_path.resolve(strict=False))}")
+	CONSOLE.print(f"Using challenge repo at {str(app_cfg.repo_path.resolve(strict=False))}")
 
 
 # define submodules
