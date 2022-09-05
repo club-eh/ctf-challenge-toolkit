@@ -5,7 +5,6 @@ from pathlib import Path
 import click
 
 from cctk.constants import TOOLKIT_DESCRIPTION
-from cctk.rt import CONSOLE
 from cctk.types import AppConfig
 
 
@@ -36,9 +35,6 @@ def root(ctx: click.Context, repo: str | None, verbose: bool):
 		app_cfg.repo_path = Path(".")
 	else:
 		app_cfg.repo_path = Path(repo)
-
-	# log location of challenge repo
-	CONSOLE.print(f"Using challenge repo at {str(app_cfg.repo_path.resolve(strict=False))}")
 
 
 # define submodules

@@ -37,6 +37,9 @@ class DeploySource:
 		self._challenges_specified = challenge_ids is not None
 
 
+		# log location of challenge repo
+		CONSOLE.print(f"Using challenge repo at {str(repo_path.resolve(strict=False))}")
+
 		# load + validate challenge repo
 		with CONSOLE.status("Validating challenge repository"):
 			self.repo = ChallengeRepo(book, repo_path)
