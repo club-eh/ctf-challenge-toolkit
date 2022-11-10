@@ -4,6 +4,8 @@ from . import VALIDATORS_STRING_ID
 
 
 class ChallengeConfigMeta(Schema):
+	"""Marshmallow schema for the [meta] section of the challenge config."""
+
 	id = fields.String(required=True, validate=VALIDATORS_STRING_ID)
 	name = fields.String(required=False)  # not required for development
 	category = fields.String(required=True, validate=VALIDATORS_STRING_ID)
@@ -13,10 +15,14 @@ class ChallengeConfigMeta(Schema):
 
 
 class ChallengeConfigHint(Schema):
+	"""Marshmallow schema for the [[hints]] sections of the challenge config."""
+
 	content = fields.String(required=True)
 
 
 class ChallengeConfigScoring(Schema):
+	"""Marshmallow schema for the [scoring] section of the challenge config."""
+
 	flag = fields.String(required=True)
 	# NOTE: subject to change (scoring might be determined by difficulty)
 	points = fields.Integer(strict=True)
