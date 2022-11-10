@@ -2,9 +2,7 @@
 
 from pathlib import Path
 
-import rich.box
-from rich.panel import Panel
-from rich.rule import Rule
+from rich.pretty import Pretty
 from rich.table import Table
 from rich.text import Text
 
@@ -68,14 +66,19 @@ class DeploySource:
 					self._failed_challenges.add(challenge_id)
 
 
-	def rich_repo_summary(self) -> Table:
-		"""Build and return a rich-text summary of the loaded challenge repository."""
-		raise NotImplementedError
+	def rich_repo_summary(self, table: Table) -> Table:
+		"""Fill a table with information about the loaded challenge repository."""
 
-	def rich_challenge_summary(self) -> Table:
-		"""Build and return a rich-text summary of all loaded challenges."""
+		table.add_row("Challenge Categories: ", Pretty(self.repo.categories))
 
-		loaded_challenges = Table(*["ID", "Difficulty", "Category", "Name", "Tags"], title="Loaded Challenges", box=rich.box.MINIMAL)
+		return table
+
+	def rich_challenge_summary(self, table: Table) -> Table:
+		"""Fill a table with a summary of all loaded challenges."""
+
+		for header in ["ID", "Difficulty", "Category", "Name", "Tags"]:
+			table.add_column(header)
+
 		for challenge in self.challenges.values():
 			difficulty = challenge.config.difficulty
 
@@ -89,7 +92,7 @@ class DeploySource:
 			else:
 				severity_style = "green3"
 
-			loaded_challenges.add_row(
+			table.add_row(
 				Text(challenge.challenge_id, style=severity_style),
 				Text(difficulty, style=f"challenge.difficulty.{difficulty}"),
 				challenge.config.category,
@@ -98,4 +101,4 @@ class DeploySource:
 				#style = "green3",
 			)
 
-		return loaded_challenges
+		return table

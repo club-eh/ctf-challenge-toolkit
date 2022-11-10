@@ -6,7 +6,6 @@ import enum
 from pathlib import Path
 
 import attrs
-import rich.box
 from rich.columns import Columns
 from rich.console import RenderableType
 from rich.table import Table
@@ -126,7 +125,7 @@ class ValidationBook:
 	def get_issues(self, challenge_id: str | None) -> list[Issue]:
 		return list(self._issues.get(challenge_id, []))
 
-	def rich_issue_summary(self) -> Table | Text:
+	def rich_issue_summary(self, table: Table) -> Table | Text:
 		"""Generate a rich text summary of all recorded issues (or an "all clear" if no issues were found)."""
 
 		if len(self._issues) == 0:
@@ -147,8 +146,6 @@ class ValidationBook:
 
 			challenge_issues[max_severity][challenge_id] = issues
 
-		#table = Table(*["Challenge ID", "Issues"], title="Validation Issues", title_style="italic orange3")
-		table = Table(title="Validation Issues", title_style="italic orange3", box=rich.box.MINIMAL)
 		table.add_column("Challenge ID", ratio=2)
 		table.add_column("Issues", ratio=5)
 
