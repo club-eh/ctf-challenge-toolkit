@@ -80,7 +80,7 @@ class DeploySource:
 			table.add_column(header)
 
 		for challenge in self.challenges.values():
-			difficulty = challenge.config.difficulty
+			difficulty = challenge.config.difficulty.value
 
 			highest_issue_severity = Severity.NOTICE
 			for issue in self._book.get_issues(challenge.challenge_id):

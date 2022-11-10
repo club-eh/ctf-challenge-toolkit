@@ -1,6 +1,15 @@
-from marshmallow import fields, Schema, validate
+import enum
+
+from marshmallow import fields, Schema
 
 from . import VALIDATORS_STRING_ID
+
+
+class ChallengeDifficulty(enum.Enum):
+	UNDEFINED = "undefined"
+	EASY = "easy"
+	MEDIUM = "medium"
+	HARD = "hard"
 
 
 class ChallengeConfigMeta(Schema):
@@ -9,7 +18,7 @@ class ChallengeConfigMeta(Schema):
 	id = fields.String(required=True, validate=VALIDATORS_STRING_ID)
 	name = fields.String(required=False)  # not required for development
 	category = fields.String(required=True, validate=VALIDATORS_STRING_ID)
-	difficulty = fields.String(required=True, validate=validate.OneOf(["undefined", "easy", "medium", "hard"]))  # 'undefined' is only for development
+	difficulty = fields.Enum(ChallengeDifficulty, by_value=True, required=True)
 	description = fields.String(required=False)  # not required for development
 	tags = fields.List(fields.String(), required=False, load_default=[])
 

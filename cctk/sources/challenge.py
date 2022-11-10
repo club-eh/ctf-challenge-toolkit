@@ -1,8 +1,6 @@
 from __future__ import annotations
-from typing import Literal
 
 import decimal
-import enum
 from pathlib import Path
 
 import attrs
@@ -10,19 +8,10 @@ import marshmallow
 
 from cctk import tomllib
 from cctk.constants import CHALLENGE_CONFIG_FILENAME
-from cctk.schemas.challenge import ChallengeConfigSchema
+from cctk.schemas.challenge import ChallengeConfigSchema, ChallengeDifficulty
 from cctk.schemas.formatting import format_validation_exception
 from cctk.sources.repository import ChallengeRepo
 from cctk.validation import Severity, Source, ValidationBook, ValidationError
-
-
-class ChallengeDifficulty(enum.Enum):
-	UNDEFINED = "undefined"
-	EASY = "easy"
-	MEDIUM = "medium"
-	HARD = "hard"
-
-ChallengeDifficultyStr = Literal["undefined", "easy", "medium", "hard"]
 
 
 @attrs.define(frozen=True)
@@ -30,7 +19,7 @@ class ChallengeConfig:
 	id: str
 	name: str
 	category: str
-	difficulty: ChallengeDifficultyStr
+	difficulty: ChallengeDifficulty
 	description: str | None
 	tags: list[str]
 
@@ -111,7 +100,7 @@ class ChallengeConfig:
 			validation_error = True
 
 		# warn on undefined difficulty
-		if final_data["difficulty"] == "undefined":
+		if final_data["difficulty"] == ChallengeDifficulty.UNDEFINED:
 			pen.warn("challenge-config-difficulty-undefined", "Challenge difficulty is set to 'undefined'")
 
 		# TODO: (more) custom validation steps (for warnings and non-strict-schema issues)
