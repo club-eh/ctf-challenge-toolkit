@@ -105,7 +105,7 @@ class ChallengeConfig:
 			pen.issue(Severity.ERROR, "challenge-config-id-mismatch", f"Challenge config ID does not match directory name ({final_data['id']!r} != {challenge_id!r})")
 			validation_error = True
 
-		# error on undefined category
+		# error on invalid category
 		if final_data["category"] not in repo.categories:
 			pen.issue(Severity.ERROR, "challenge-", f"Challenge category is invalid ({final_data['category']!r} must match one of the repository-defined categories)")
 			validation_error = True
