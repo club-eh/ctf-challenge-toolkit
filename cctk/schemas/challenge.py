@@ -37,9 +37,17 @@ class ChallengeConfigScoring(Schema):
 	points = fields.Integer(strict=True)
 
 
+class ChallengeConfigDynamic(Schema):
+	"""Marshmallow schema for the [dynamic.*] sections of the challenge config."""
+
+	build = fields.String(required=True)
+	ports = fields.Dict(keys=fields.String(validate=VALIDATORS_STRING_ID), values=fields.Integer(), required=True)
+
+
 class ChallengeConfigSchema(Schema):
 	"""Marshmallow schema for the challenge config file."""
 
 	meta = fields.Nested(ChallengeConfigMeta, required=True)
 	scoring = fields.Nested(ChallengeConfigScoring, required=True)
 	hints = fields.List(fields.Nested(ChallengeConfigHint), required=False)
+	dynamic = fields.Dict(keys=fields.String(validate=VALIDATORS_STRING_ID), values=fields.Nested(ChallengeConfigDynamic), required=False)

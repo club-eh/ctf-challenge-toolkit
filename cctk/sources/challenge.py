@@ -15,6 +15,15 @@ from cctk.validation import Severity, Source, ValidationBook, ValidationError
 
 
 @attrs.define(frozen=True)
+class ContainerConfig:
+	id: str
+	# Path to Containerfile
+	build: str
+	# Map of ports to expose (key is ID, value is port number)
+	ports: dict[str, int]
+
+
+@attrs.define(frozen=True)
 class ChallengeConfig:
 	id: str
 	name: str
@@ -27,6 +36,8 @@ class ChallengeConfig:
 	points: int
 
 	hints: list[str]
+
+	dynamic: dict[str, ContainerConfig] | None
 
 
 	@classmethod
@@ -54,8 +65,6 @@ class ChallengeConfig:
 		# partially destructure
 		clean_meta = cleaned_data["meta"]
 		clean_scoring = cleaned_data["scoring"]
-		clean_hints = cleaned_data.get("hints", [])
-		del cleaned_data
 
 		# rebuild dictionary to match constructor parameters
 		final_data = {
@@ -65,7 +74,14 @@ class ChallengeConfig:
 			"tags": clean_meta["tags"],
 
 			"flag": clean_scoring["flag"],
+
+			# collapse list of hint structures
+			"hints": [hint["content"] for hint in cleaned_data.get("hints", [])],
+
+			"dynamic": cleaned_data.get("dynamic", None),
 		}
+
+		del cleaned_data
 
 		if "name" in clean_meta:
 			final_data["name"] = clean_meta["name"]
@@ -84,9 +100,6 @@ class ChallengeConfig:
 		else:
 			pen.warn("challenge-config-missing-points", "Challenge config does not specify a point value; defaulting to 0")
 			final_data["points"] = 0
-
-		# collapse list of hint structures
-		final_data["hints"] = [hint["content"] for hint in clean_hints]
 
 
 		# error on challenge ID mismatch
