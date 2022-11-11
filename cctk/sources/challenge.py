@@ -109,7 +109,7 @@ class ChallengeConfig:
 
 		# error on invalid category
 		if final_data["category"] not in repo.categories:
-			pen.issue(Severity.ERROR, "challenge-", f"Challenge category is invalid ({final_data['category']!r} must match one of the repository-defined categories)")
+			pen.issue(Severity.ERROR, "challenge-config-category-invalid", f"Challenge category is invalid ({final_data['category']!r} must match one of the repository-defined categories)")
 			validation_error = True
 
 		# warn on undefined difficulty
