@@ -102,18 +102,22 @@ class ChallengeConfig:
 			final_data["points"] = 0
 
 
+		# build the object, so typing works for further validation checks
+		config = cls(**final_data)
+
+
 		# error on challenge ID mismatch
-		if final_data["id"] != challenge_id:
+		if config.id != challenge_id:
 			pen.issue(Severity.ERROR, "challenge-config-id-mismatch", f"Challenge config ID does not match directory name ({final_data['id']!r} != {challenge_id!r})")
 			validation_error = True
 
 		# error on invalid category
-		if final_data["category"] not in repo.categories:
+		if config.category not in repo.categories:
 			pen.issue(Severity.ERROR, "challenge-config-category-invalid", f"Challenge category is invalid ({final_data['category']!r} must match one of the repository-defined categories)")
 			validation_error = True
 
 		# warn on undefined difficulty
-		if final_data["difficulty"] == ChallengeDifficulty.UNDEFINED:
+		if config.difficulty == ChallengeDifficulty.UNDEFINED:
 			pen.warn("challenge-config-difficulty-undefined", "Challenge difficulty is set to 'undefined'")
 
 		# TODO: (more) custom validation steps (for warnings and non-strict-schema issues)
@@ -121,7 +125,7 @@ class ChallengeConfig:
 		if validation_error:
 			raise ValidationError
 
-		return cls(**final_data)
+		return config
 
 
 class Challenge:
