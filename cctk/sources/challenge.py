@@ -41,10 +41,8 @@ class ChallengeConfig:
 
 
 	@classmethod
-	def from_file(cls, repo: ChallengeRepo, book: ValidationBook, path: Path, challenge_id: str) -> ChallengeConfig:
+	def from_file(cls, repo: ChallengeRepo, book: ValidationBook, path: Path, chaldir: Path, challenge_id: str) -> ChallengeConfig:
 		pen = book.bind(challenge_id, Source(path))
-
-		validation_error = False
 
 		# attempt to load the challenge config file
 		try:
@@ -77,12 +75,20 @@ class ChallengeConfig:
 
 			# collapse list of hint structures
 			"hints": [hint["content"] for hint in cleaned_data.get("hints", [])],
-
-			"dynamic": cleaned_data.get("dynamic", None),
 		}
+
+		# build ContainerConfig objects for dynamic sections
+		if cleaned_data.get("dynamic") is not None:
+			final_data["dynamic"] = {
+				cid : ContainerConfig(id=cid, **cconfig)
+				for cid, cconfig in cleaned_data["dynamic"].items()
+			}
+		else:
+			final_data["dynamic"] = None
 
 		del cleaned_data
 
+		# region: pre-object validation
 		if "name" in clean_meta:
 			final_data["name"] = clean_meta["name"]
 		else:
@@ -100,11 +106,15 @@ class ChallengeConfig:
 		else:
 			pen.warn("challenge-config-missing-points", "Challenge config does not specify a point value; defaulting to 0")
 			final_data["points"] = 0
+		# endregion: pre-object validation
 
 
 		# build the object, so typing works for further validation checks
 		config = cls(**final_data)
 
+		validation_error = False
+
+		# region: post-object validation
 
 		# error on challenge ID mismatch
 		if config.id != challenge_id:
@@ -119,6 +129,27 @@ class ChallengeConfig:
 		# warn on undefined difficulty
 		if config.difficulty == ChallengeDifficulty.UNDEFINED:
 			pen.warn("challenge-config-difficulty-undefined", "Challenge difficulty is set to 'undefined'")
+
+		if config.dynamic is not None:
+			# error if dynamic section exists but not directory
+			if not (chaldir / "dynamic").is_dir():
+				pen.issue(Severity.ERROR, "challenge-dynamic-dir-missing", "Config contains dynamic section but `dynamic` subdirectory not found")
+				validation_error = True
+
+			# error on missing container build files
+			for container_id, container_cfg in config.dynamic.items():
+				containerfile = chaldir / "dynamic" / container_cfg.build
+				if not containerfile.exists():
+					pen.issue(Severity.ERROR, "challenge-dynamic-build-file-missing", f"Missing container build file for {container_id!r}: {str(containerfile)!r} not found")
+					validation_error = True
+
+		else:
+			# warn if dynamic directory exists but not config section
+			if (chaldir / "dynamic").is_dir():
+				pen.issue(Severity.WARNING, "challenge-dynamic-section-missing", "Config does not contain dynamic section but `dynamic` subdirectory exists")
+
+		# endregion: post-object validation
+
 
 		# TODO: (more) custom validation steps (for warnings and non-strict-schema issues)
 
@@ -162,7 +193,7 @@ class Challenge:
 
 
 		# load the config file (with validation)
-		self.config = ChallengeConfig.from_file(repo, book, self.config_path, challenge_id)
+		self.config = ChallengeConfig.from_file(repo, book, self.config_path, self.path, challenge_id)
 
 
 	def __repr__(self) -> str:
