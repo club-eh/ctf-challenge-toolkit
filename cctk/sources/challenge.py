@@ -41,12 +41,12 @@ class ChallengeConfig:
 
 
 	@classmethod
-	def from_file(cls, repo: ChallengeRepo, book: ValidationBook, path: Path, chaldir: Path, challenge_id: str) -> ChallengeConfig:
-		pen = book.bind(challenge_id, Source(path))
+	def from_file(cls, chal: Challenge, book: ValidationBook) -> ChallengeConfig:
+		pen = book.bind(chal.challenge_id, Source(chal.config_path))
 
 		# attempt to load the challenge config file
 		try:
-			with path.open(mode="rb") as fp:
+			with chal.config_path.open(mode="rb") as fp:
 				raw_data = tomllib.load(fp, parse_float = decimal.Decimal)
 		except tomllib.TOMLDecodeError as exc:
 			pen.issue(Severity.ERROR, "challenge-config-invalid-toml", f"Failed to parse {CHALLENGE_CONFIG_FILENAME}: {exc}")
@@ -117,13 +117,13 @@ class ChallengeConfig:
 		# region: post-object validation
 
 		# error on challenge ID mismatch
-		if config.id != challenge_id:
-			pen.issue(Severity.ERROR, "challenge-config-id-mismatch", f"Challenge config ID does not match directory name ({final_data['id']!r} != {challenge_id!r})")
+		if config.id != chal.challenge_id:
+			pen.issue(Severity.ERROR, "challenge-config-id-mismatch", f"Challenge config ID does not match directory name ({config.id!r} != {chal.challenge_id!r})")
 			validation_error = True
 
 		# error on invalid category
-		if config.category not in repo.categories:
-			pen.issue(Severity.ERROR, "challenge-config-category-invalid", f"Challenge category is invalid ({final_data['category']!r} must match one of the repository-defined categories)")
+		if config.category not in chal.repo.categories:
+			pen.issue(Severity.ERROR, "challenge-config-category-invalid", f"Challenge category is invalid ({config.category!r} must match one of the repository-defined categories)")
 			validation_error = True
 
 		# warn on undefined difficulty
@@ -132,20 +132,20 @@ class ChallengeConfig:
 
 		if config.dynamic is not None:
 			# error if dynamic section exists but not directory
-			if not (chaldir / "dynamic").is_dir():
+			if not (chal.path / "dynamic").is_dir():
 				pen.issue(Severity.ERROR, "challenge-dynamic-dir-missing", "Config contains dynamic section but `dynamic` subdirectory not found")
 				validation_error = True
 
 			# error on missing container build files
 			for container_id, container_cfg in config.dynamic.items():
-				containerfile = chaldir / "dynamic" / container_cfg.build
+				containerfile = chal.path / "dynamic" / container_cfg.build
 				if not containerfile.exists():
 					pen.issue(Severity.ERROR, "challenge-dynamic-build-file-missing", f"Missing container build file for {container_id!r}: {str(containerfile)!r} not found")
 					validation_error = True
 
 		else:
 			# warn if dynamic directory exists but not config section
-			if (chaldir / "dynamic").is_dir():
+			if (chal.path / "dynamic").is_dir():
 				pen.issue(Severity.WARNING, "challenge-dynamic-section-missing", "Config does not contain dynamic section but `dynamic` subdirectory exists")
 
 		# endregion: post-object validation
@@ -174,6 +174,7 @@ class Challenge:
 		"""
 
 		# store object attributes
+		self.repo = repo
 		self.path = path
 		self.config_path = path / CHALLENGE_CONFIG_FILENAME
 		self.challenge_id = challenge_id
@@ -193,7 +194,7 @@ class Challenge:
 
 
 		# load the config file (with validation)
-		self.config = ChallengeConfig.from_file(repo, book, self.config_path, self.path, challenge_id)
+		self.config = ChallengeConfig.from_file(self, book)
 
 
 	def __repr__(self) -> str:
