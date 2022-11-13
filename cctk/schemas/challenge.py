@@ -37,6 +37,14 @@ class ChallengeConfigScoring(Schema):
 	points = fields.Integer(strict=True)
 
 
+class ChallengeConfigStatic(Schema):
+	"""Marshmallow schema for the [static] section of the challenge config."""
+
+	include_patterns = fields.List(fields.String(), required=False, load_default=[], data_key="include")
+	exclude_patterns = fields.List(fields.String(), required=False, load_default=[], data_key="exclude")
+	rm_prefixes = fields.List(fields.String(), required=False, load_default=[])
+
+
 class ChallengeConfigDynamic(Schema):
 	"""Marshmallow schema for the [dynamic.*] sections of the challenge config."""
 
@@ -50,4 +58,5 @@ class ChallengeConfigSchema(Schema):
 	meta = fields.Nested(ChallengeConfigMeta, required=True)
 	scoring = fields.Nested(ChallengeConfigScoring, required=True)
 	hints = fields.List(fields.Nested(ChallengeConfigHint), required=False)
+	static = fields.Nested(ChallengeConfigStatic, required=False)
 	dynamic = fields.Dict(keys=fields.String(validate=VALIDATORS_STRING_ID), values=fields.Nested(ChallengeConfigDynamic), required=False)

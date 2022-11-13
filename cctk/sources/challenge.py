@@ -15,6 +15,16 @@ from cctk.validation import Severity, Source, ValidationBook, ValidationError, V
 
 
 @attrs.define(frozen=True)
+class StaticConfig:
+	# list of glob patterns to include
+	include_patterns: list[str]
+	# list of glob patterns to exclude
+	exclude_patterns: list[str]
+	# list of prefixes to remove from paths
+	rm_prefixes: list[str]
+
+
+@attrs.define(frozen=True)
 class ContainerConfig:
 	id: str
 	# Path to Containerfile
@@ -37,6 +47,7 @@ class ChallengeConfig:
 
 	hints: list[str]
 
+	static: StaticConfig | None
 	dynamic: dict[str, ContainerConfig] | None
 
 
@@ -84,6 +95,9 @@ class ChallengeConfig:
 			# collapse list of hint structures
 			"hints": [hint["content"] for hint in cleaned_data.get("hints", [])],
 		}
+
+		# construct StaticConfig object, if config provided
+		final_data["static"] = None if cleaned_data.get("static") is None else StaticConfig(**cleaned_data["static"])
 
 		# construct ContainerConfig objects for dynamic sections
 		if cleaned_data.get("dynamic") is not None:
