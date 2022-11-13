@@ -94,19 +94,15 @@ class ChallengeConfig:
 
 			# collapse list of hint structures
 			"hints": [hint["content"] for hint in cleaned_data.get("hints", [])],
+
+			# construct StaticConfig object, if config provided
+			"static": None if cleaned_data.get("static") is None else
+				StaticConfig(**cleaned_data["static"]),
+
+			# construct ContainerConfig objects for dynamic sections (if provided)
+			"dynamic": None if cleaned_data.get("dynamic") is None else
+				{ cid : ContainerConfig(id=cid, **cconfig) for cid, cconfig in cleaned_data["dynamic"].items() },
 		}
-
-		# construct StaticConfig object, if config provided
-		final_data["static"] = None if cleaned_data.get("static") is None else StaticConfig(**cleaned_data["static"])
-
-		# construct ContainerConfig objects for dynamic sections
-		if cleaned_data.get("dynamic") is not None:
-			final_data["dynamic"] = {
-				cid : ContainerConfig(id=cid, **cconfig)
-				for cid, cconfig in cleaned_data["dynamic"].items()
-			}
-		else:
-			final_data["dynamic"] = None
 
 		del cleaned_data
 
