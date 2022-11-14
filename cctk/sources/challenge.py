@@ -12,7 +12,8 @@ from cctk.constants import CHALLENGE_CONFIG_FILENAME
 from cctk.schemas.challenge import ChallengeConfigSchema, ChallengeDifficulty
 from cctk.schemas.formatting import format_validation_exception
 from cctk.sources.repository import ChallengeRepo
-from cctk.validation import Severity, Source, ValidationBook, ValidationError, ValidationBoundPen
+from cctk.util.filewalker import FileWalker, MatchlessPatternWarning, RedundantPatternWarning
+from cctk.validation import Severity, Source, ValidationBook, ValidationBoundPen, ValidationError
 
 
 @attrs.define(frozen=True)
@@ -222,8 +223,8 @@ class Challenge:
 			if (self.path / "dynamic").is_dir():
 				pen.issue(Severity.WARNING, "challenge-dynamic-section-missing", "Config does not contain dynamic section but `dynamic` subdirectory exists")
 
-		# error on invalid static patterns
 		if self.config.static is not None:
+			# error on invalid static patterns
 			for pattern in chain(self.config.static.include_patterns, self.config.static.exclude_patterns):
 				if pattern.startswith("/"):
 					pen.issue(Severity.ERROR, "challenge-static-pattern-absolute", f"Config contains absolute static pattern (cannot start with '/'): {pattern!r}")
@@ -232,8 +233,55 @@ class Challenge:
 					pen.issue(Severity.ERROR, "challenge-static-pattern-dironly", f"Config contains invalid static pattern (cannot end with '/'): {pattern!r}")
 					encountered_error = True
 
+			# validate static files
+			if self._get_static_files(pen)[1]:
+				encountered_error = True
+
 
 		# TODO: (more) custom validation steps (for warnings and non-strict-schema issues)
 
 		if encountered_error:
 			raise ValidationError
+
+	def _get_static_files(self, pen: ValidationBoundPen | None = None) -> tuple[list[Path], bool]:
+		"""
+		Apply the static include and exclude patterns to the challenge directory, and return all matching filepaths.
+
+		Also checks for validation issues, reported to the given pen (optional).
+
+		Args:
+			pen (optional): The ValidationBoundPen to report validation issues to.
+
+		Returns:
+			list[Path]: A list of all matched filepaths.
+			bool: True if a validation error occurred, False otherwise.
+		"""
+
+		assert self.config.static is not None
+
+		# use cached FileWalker if available, create one otherwise
+		self._static_fw: FileWalker
+		try:
+			fw = self._static_fw
+		except AttributeError:
+			fw = self._static_fw = FileWalker(
+				self.path,
+				self.config.static.include_patterns or list(),
+				self.config.static.exclude_patterns or list(),
+			)
+
+		results, warnings = fw.walk_with_warnings()
+
+		if pen is not None:
+			for warning in warnings:
+				match warning:
+					case MatchlessPatternWarning(type="include", pattern=pattern):
+						pen.warn("challenge-static-include-matchless",
+							f"Static include pattern did not match anything: {pattern!r}")
+					case RedundantPatternWarning(type=type, pattern=pattern):
+						pen.warn("challenge-static-pattern-redundant",
+							f"Static {type} pattern is redundant: {pattern!r}")
+					case _:
+						raise Exception(f"Unknown FileWalkerWarning: {warning!r}")
+
+		return results, False

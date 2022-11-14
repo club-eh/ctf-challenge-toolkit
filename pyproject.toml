@@ -37,3 +37,4 @@ sections = ["FUTURE", "TYPING", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLD
 no_lines_before = ["TYPING"]
 force_single_line = false
 lines_after_imports = 2
+line_length = 119

@@ -12,8 +12,7 @@ from cctk.commands import root
 from cctk.commands.shared import DeploySource
 from cctk.rt import CONSOLE
 from cctk.types import AppConfig
-from cctk.validation import (FatalValidationError, ValidationBook,
-                             ValidationError)
+from cctk.validation import FatalValidationError, ValidationBook, ValidationError
 
 
 class ValidationMode(enum.Enum):
