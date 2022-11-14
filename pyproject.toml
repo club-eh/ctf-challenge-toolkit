@@ -20,6 +20,7 @@ marshmallow = "^3.17.1"
 mypy = "^0.971"
 rope = "^1.3.0"
 isort = "^5.10.1"
+pytest = "^7.2.0"
 
 
 [build-system]
