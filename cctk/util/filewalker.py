@@ -69,7 +69,6 @@ class FileWalker:
 		if not self.root.exists():
 			raise FileNotFoundError("Root directory does not exist: '{}'")
 
-
 		results: set[Path] = set()
 
 		# process include patterns
@@ -104,6 +103,12 @@ class FileWalker:
 			# remove exact match if present
 			if literal_path in results:
 				results.remove(self.root / pattern)
+
+		# expand all remaining paths
+		for path in results.copy():
+			if path.is_dir():
+				results.update(p for p in path.glob("**/*") if p.is_file())
+				results.remove(path)
 
 		# TODO: apply glob exclude patterns
 

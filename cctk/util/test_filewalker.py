@@ -26,6 +26,7 @@ class TestFileWalker:
 	def test_simple(self, tmp_path: Path):
 		generate_filetree(tmp_path, [
 			"a/fileless/directory",
+			"a/b1/c2/dir",
 		], [
 			"a/b1/c1/d0",
 			"a/b1/c2/d1",
@@ -49,9 +50,8 @@ class TestFileWalker:
 		).walk_with_warnings()
 
 		assert sorted(results) == sorted([
-			tmp_path / Path("a/fileless"),
-			tmp_path / Path("a/b1/c2"),
-			tmp_path / Path("a/b2/c2"),
+			tmp_path / Path("a/b1/c2/d1"),
+			tmp_path / Path("a/b2/c2/d3"),
 			tmp_path / Path("top_level_file2"),
 		])
 
