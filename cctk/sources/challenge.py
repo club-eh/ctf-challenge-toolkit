@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import decimal
+from itertools import chain
 from pathlib import Path
 
 import attrs
@@ -220,6 +221,16 @@ class Challenge:
 			# warn if dynamic directory exists but not config section
 			if (self.path / "dynamic").is_dir():
 				pen.issue(Severity.WARNING, "challenge-dynamic-section-missing", "Config does not contain dynamic section but `dynamic` subdirectory exists")
+
+		# error on invalid static patterns
+		if self.config.static is not None:
+			for pattern in chain(self.config.static.include_patterns, self.config.static.exclude_patterns):
+				if pattern.startswith("/"):
+					pen.issue(Severity.ERROR, "challenge-static-pattern-absolute", f"Config contains absolute static pattern (cannot start with '/'): {pattern!r}")
+					encountered_error = True
+				elif pattern.endswith("/"):
+					pen.issue(Severity.ERROR, "challenge-static-pattern-dironly", f"Config contains invalid static pattern (cannot end with '/'): {pattern!r}")
+					encountered_error = True
 
 
 		# TODO: (more) custom validation steps (for warnings and non-strict-schema issues)
