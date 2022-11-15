@@ -1,15 +1,29 @@
 import enum
+from functools import total_ordering
 
 from marshmallow import fields, Schema
 
 from . import VALIDATORS_STRING_ID
 
 
+@total_ordering
 class ChallengeDifficulty(enum.Enum):
 	UNDEFINED = "undefined"
 	EASY = "easy"
 	MEDIUM = "medium"
 	HARD = "hard"
+
+	def _to_int(self) -> int:
+		"""Used for ordering only."""
+		return [
+			ChallengeDifficulty.UNDEFINED,
+			ChallengeDifficulty.EASY,
+			ChallengeDifficulty.MEDIUM,
+			ChallengeDifficulty.HARD,
+		].index(self)
+
+	def __lt__(self, other: "ChallengeDifficulty") -> int:
+		return self._to_int() < other._to_int()
 
 
 class ChallengeConfigMeta(Schema):

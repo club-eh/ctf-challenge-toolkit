@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import decimal
+from functools import total_ordering
 from itertools import chain
 from pathlib import Path
 
@@ -131,11 +132,29 @@ class ChallengeConfig:
 		return cls(**final_data)
 
 
+@total_ordering
 class Challenge:
 	"""Interface to a challenge directory."""
 
 	def __repr__(self) -> str:
 		return f"<Challenge id={self.challenge_id!r} config={self.config!r}>"
+
+	def __lt__(self, other: "Challenge") -> bool:
+		"""Comparison operator, implemented for sorting.
+
+		Sorts first by category, then by difficulty, then by ID.
+		"""
+
+		if self.config.category < other.config.category:
+			return True
+		elif self.config.category > other.config.category:
+			return False
+		elif self.config.difficulty < other.config.difficulty:
+			return True
+		elif self.config.difficulty > other.config.difficulty:
+			return False
+		else:
+			return self.config.id < other.config.id
 
 	def __init__(self, repo: ChallengeRepo, book: ValidationBook, path: Path, challenge_id: str):
 		"""Initialize a new Challenge interface.

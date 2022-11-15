@@ -79,7 +79,7 @@ class DeploySource:
 		for header in ["ID", "Difficulty", "Category", "Name", "Tags"]:
 			table.add_column(header)
 
-		for challenge in self.challenges.values():
+		for challenge in sorted(self.challenges.values()):
 			difficulty = challenge.config.difficulty.value
 
 			highest_issue_severity = Severity.NOTICE
