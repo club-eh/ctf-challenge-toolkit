@@ -21,9 +21,10 @@ class ValidationMode(enum.Enum):
 
 
 @root.command()
+@click.option("-s", "--skip", "skip_ids", metavar="CHALLENGE_ID", multiple=True, help="IDs of challenges to ignore.")
 @click.argument("challenges", nargs=-1)
 @click.pass_context
-def validate(ctx: click.Context, challenges: tuple[str]):
+def validate(ctx: click.Context, challenges: tuple[str], skip_ids: tuple[str]):
 	"""Validate challenge definitions.
 
 	Can validate either specific challenges, or the entire repository.
@@ -40,7 +41,13 @@ def validate(ctx: click.Context, challenges: tuple[str]):
 
 	# load repo and challenge data
 	try:
-		deploy_source = DeploySource(validation_book, app_cfg.repo_path, list(challenges) if len(challenges) > 0 else None, ctx.obj.verbose)
+		deploy_source = DeploySource(
+			validation_book,
+			app_cfg.repo_path,
+			list(challenges) if len(challenges) > 0 else None,
+			list(skip_ids),
+			ctx.obj.verbose,
+		)
 	except (FatalValidationError, ValidationError):
 		raise SystemExit(1)
 

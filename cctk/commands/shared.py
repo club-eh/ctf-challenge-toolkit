@@ -15,7 +15,14 @@ from cctk.validation import Severity, ValidationBook, ValidationError
 class DeploySource:
 	"""Represents the local sources used for a deployment."""
 
-	def __init__(self, book: ValidationBook, repo_path: Path, challenge_ids: list[str] | None = None, verbose: bool = False):
+	def __init__(
+		self,
+		book: ValidationBook,
+		repo_path: Path,
+		challenge_ids: list[str] | None = None,
+		skip_ids: list[str] = [],
+		verbose: bool = False,
+	):
 		"""Initialize a new DeploySource instance.
 
 		Performs validation on loaded data.
@@ -25,10 +32,13 @@ class DeploySource:
 			challenge_ids (optional): A tuple of challenge IDs to deploy. If None, all challenges found in the repository will be selected for deployment.
 		"""
 
+		# apply skip IDs to provided challenge IDs (if provided)
+		challenge_ids = None if challenge_ids is None else [c for c in challenge_ids if c not in skip_ids]
+
 		# initialize object attributes
 		self._book = book
 		self._repo_path = repo_path
-		self._challenge_ids = challenge_ids
+		self._skip_ids = skip_ids
 		# holds the IDs of challenges we failed to load
 		self._failed_challenges = set()
 		# record whether we were given a list of challenges or not
@@ -46,8 +56,17 @@ class DeploySource:
 
 		# find challenges if required
 		if not self._challenges_specified:
-			challenge_ids = list(self.repo.find_challenges())
-			CONSOLE.print(f"Found {len(challenge_ids)} challenges in the repository")
+			challenge_ids = list()
+			skip_counter = 0
+			for cid in self.repo.find_challenges():
+				if cid in skip_ids:
+					skip_counter += 1
+				else:
+					challenge_ids.append(cid)
+			if skip_counter == 0:
+				CONSOLE.print(f"Found {len(challenge_ids)} challenges in the repository")
+			else:
+				CONSOLE.print(f"Found {len(challenge_ids)} challenges in the repository (skipped {skip_counter})")
 		else:
 			assert challenge_ids is not None
 			CONSOLE.print(f"Validating {len(challenge_ids)} challenge{'s' if len(challenge_ids) > 1 else ''}")
@@ -64,6 +83,9 @@ class DeploySource:
 				except ValidationError:
 					# we handle these validation errors later, when deployment checks whether all challenges loaded successfully
 					self._failed_challenges.add(challenge_id)
+
+		# store challenge IDs
+		self._challenge_ids = challenge_ids
 
 
 	def rich_repo_summary(self, table: Table) -> Table:
