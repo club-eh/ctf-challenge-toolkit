@@ -1,7 +1,11 @@
-"""Shared code for parsing / interpreting / validating."""
+"""Shared code for parsing, interpreting, validating, etc."""
 
 from pathlib import Path
 
+from rich import box
+from rich.console import Group, RenderableType
+from rich.padding import Padding
+from rich.panel import Panel
 from rich.pretty import Pretty
 from rich.table import Table
 from rich.text import Text
@@ -9,7 +13,8 @@ from rich.text import Text
 from cctk.rt import CONSOLE
 from cctk.sources.challenge import Challenge
 from cctk.sources.repository import ChallengeRepo
-from cctk.validation import Severity, ValidationBook, ValidationError
+from cctk.types import AppConfig
+from cctk.validation import FatalValidationError, Severity, ValidationBook, ValidationError
 
 
 class DeploySource:
@@ -124,3 +129,45 @@ class DeploySource:
 			)
 
 		return table
+
+
+def do_validation(app_cfg: AppConfig, challenges: tuple[str], skip_ids: tuple[str]):
+	"""Executes user-visible validation, used by both `validate` and `deploy` commands."""
+
+	# handled by command group; assertion is for type checking
+	assert app_cfg.repo_path is not None
+
+	# initialize validation book
+	validation_book = ValidationBook()
+
+	# load repo and challenge data
+	try:
+		deploy_source = DeploySource(
+			validation_book,
+			app_cfg.repo_path,
+			list(challenges) if len(challenges) > 0 else None,
+			list(skip_ids),
+			app_cfg.verbose,
+		)
+	except (FatalValidationError, ValidationError):
+		raise SystemExit(1)
+
+	# generate summary tables
+	summary_items: list[RenderableType] = [
+		deploy_source.rich_challenge_summary(Table(title=Text.assemble(("Loaded Challenges", "cyan underline"), ""), title_justify="left", box=box.MINIMAL)),
+		"",
+		validation_book.rich_issue_summary(Table(title=Text.assemble(("Validation Issues", "orange3 underline"), ""), title_justify="left", box=box.MINIMAL)),
+	]
+	if app_cfg.verbose:
+		# add repository info section
+		summary_items.insert(0, Text("Repository Config", style="cyan underline"))
+		summary_items.insert(1, Padding(deploy_source.rich_repo_summary(Table.grid()), (1, 0, 0, 1)))
+		summary_items.insert(2, "")
+
+	# print summary
+	CONSOLE.print(
+		# newline to separate summary from previous output
+		"",
+		# panel containing tables
+		Panel(Group(*summary_items), title="Summary", expand=False, border_style="cyan"),
+	)
