@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import anyio
+from .commands import root as _cli_root
 
-from .commands import root as entrypoint
+def entrypoint():
+	"""Run the main Click entrypoint using the Trio backend."""
+	_cli_root(_anyio_backend="trio")
 
-
-# run the main Click entrypoint, under a custom event loop w/ uvloop
-anyio.run(entrypoint(), backend="trio")
+entrypoint()
