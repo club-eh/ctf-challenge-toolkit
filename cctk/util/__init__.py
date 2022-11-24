@@ -1,5 +1,7 @@
 """Utility functions."""
 
+import functools
+
 
 def _fnv_1a_64(text: bytes) -> int:
 	"""Computes the 64-bit FNV-1a hash of an input string.
@@ -15,6 +17,7 @@ def _fnv_1a_64(text: bytes) -> int:
 
 	return h
 
+@functools.lru_cache(128)
 def challenge_id_hash(challenge_id: str) -> int:
 	"""Implements a variation of FNV-1a to derive a 28-bit integer hash from a string ID.
 	
