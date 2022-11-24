@@ -1,5 +1,3 @@
-import enum
-
 import click
 from rich import box
 from rich.console import Group, RenderableType
@@ -13,11 +11,6 @@ from cctk.commands.shared import DeploySource
 from cctk.rt import CONSOLE
 from cctk.types import AppConfig
 from cctk.validation import FatalValidationError, ValidationBook, ValidationError
-
-
-class ValidationMode(enum.Enum):
-	REPOSITORY = "repo"
-	CHALLENGES = "challenges"
 
 
 @root.command()
