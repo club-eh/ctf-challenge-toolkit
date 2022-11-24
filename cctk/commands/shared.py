@@ -131,7 +131,7 @@ class DeploySource:
 		return table
 
 
-def do_validation(app_cfg: AppConfig, challenges: tuple[str], skip_ids: tuple[str]):
+def do_validation(app_cfg: AppConfig, challenges: tuple[str], skip_ids: tuple[str]) -> tuple[DeploySource, ValidationBook]:
 	"""Executes user-visible validation, used by both `validate` and `deploy` commands."""
 
 	# handled by command group; assertion is for type checking
@@ -171,3 +171,5 @@ def do_validation(app_cfg: AppConfig, challenges: tuple[str], skip_ids: tuple[st
 		# panel containing tables
 		Panel(Group(*summary_items), title="Summary", expand=False, border_style="cyan"),
 	)
+
+	return deploy_source, validation_book
