@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import enum
 from pathlib import Path
+from itertools import chain
 
 import attrs
 from rich.columns import Columns
@@ -122,8 +123,13 @@ class ValidationBook:
 		if severity == Severity.FATAL:
 			raise FatalValidationError
 
-	def get_issues(self, challenge_id: str | None) -> list[Issue]:
-		return list(self._issues.get(challenge_id, []))
+	def get_issues(self, challenge_id: str | None = None) -> list[Issue]:
+		"""Return a list of all issues raised for the given challenge (or for all challenges if None)."""
+
+		if challenge_id is None:
+			return list(chain.from_iterable(self._issues.values()))
+		else:
+			return list(self._issues.get(challenge_id, []))
 
 	def rich_issue_summary(self, table: Table) -> Table | Text:
 		"""Generate a rich text summary of all recorded issues (or an "all clear" if no issues were found)."""
