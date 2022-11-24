@@ -10,7 +10,8 @@ cctk = "cctk.__main__:entrypoint"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-click = "^8.1.3"
+anyio = { version = "^3.6.2", extras = ["trio"] }
+asyncclick = "^8.1.3.4"
 rich = "^12.5.1"
 tomli = { version = "^2.0.1", python = "<3.11" }  # Python >=3.11 distributes tomllib in the stdlib
 attrs = "^22.1.0"

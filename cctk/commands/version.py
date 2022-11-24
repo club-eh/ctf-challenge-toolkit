@@ -1,4 +1,4 @@
-import click
+import asyncclick as click
 
 from cctk.commands import root
 from cctk.constants import TOOLKIT_VERSION

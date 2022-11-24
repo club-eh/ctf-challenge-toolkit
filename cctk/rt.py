@@ -1,6 +1,6 @@
 """Rich text configuration."""
 
-import click
+import asyncclick as click
 import rich.console
 import rich.theme
 import rich.traceback

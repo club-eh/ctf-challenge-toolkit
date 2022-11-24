@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-import click
+import asyncclick as click
 
 from cctk.constants import TOOLKIT_DESCRIPTION
 from cctk.types import AppConfig
