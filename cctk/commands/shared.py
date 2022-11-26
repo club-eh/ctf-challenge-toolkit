@@ -13,12 +13,13 @@ from rich.progress import Progress
 from rich.table import Table
 from rich.text import Text
 
-from cctk.ctfd import CTFdAPI, Challenge as RemoteChallenge, ChallengeTags
-from cctk.util import challenge_id_hash
+from cctk.ctfd import Challenge as RemoteChallenge
+from cctk.ctfd import ChallengeTags, CTFdAPI
 from cctk.rt import CONSOLE
 from cctk.sources.challenge import Challenge as LocalChallenge
 from cctk.sources.repository import ChallengeRepo
 from cctk.types import AppConfig
+from cctk.util import challenge_id_hash
 from cctk.validation import FatalValidationError, Severity, ValidationBook, ValidationError
 
 
@@ -219,6 +220,7 @@ class DeployTarget:
 			progress.update(tid, description=f"Updating tags for {chal_desc}")
 			await self.api.update_tags(ChallengeTags(cid_hash, [ChallengeTags.Tag(v) for v in src_chal.get_tag_list()]))
 
+			# finalize status message
 			progress.update(tid, description=f"Applied changes to {chal_desc}", total=1, completed=1)
 			progress.stop_task(tid)
 
@@ -261,7 +263,7 @@ class DeployTarget:
 			table.add_column(header)
 
 		for cid, chal_changes in sorted(changes.items()):
-			changelist = list()
+			changelist: list[str | Text] = list()
 			for change in chal_changes:
 				changelist.append({
 					ChallengeChanges.CREATE_NEW: Text("Create new challenge", style="changes.create"),

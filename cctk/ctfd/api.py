@@ -158,7 +158,7 @@ class CTFdAPI:
 
 
 	async def get_tags(self, challenge_id: int) -> ChallengeTags:
-		"""Get tags for an existing CTFd challenge.
+		"""Get tags of an existing CTFd challenge.
 
 		Args:
 			challenge_id (int): The ID of the challenge to return info for.
