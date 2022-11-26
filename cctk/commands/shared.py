@@ -113,7 +113,7 @@ class DeploySource:
 			for issue in self._book.get_issues(challenge.challenge_id):
 				if highest_issue_severity < issue.severity:
 					highest_issue_severity = issue.severity
-			
+
 			if highest_issue_severity > Severity.NOTICE:
 				severity_style = f"validation.issue.{highest_issue_severity.as_string()}"
 			else:

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import enum
-from pathlib import Path
 from itertools import chain
+from pathlib import Path
 
 import attrs
 from rich.columns import Columns
