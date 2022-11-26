@@ -18,6 +18,7 @@ class CTFdAPI:
 		challenges: dict[int, Challenge] = attrs.field(factory=dict)
 		tags: dict[int, ChallengeTags] = attrs.field(factory=dict)
 		hints: dict[int, ChallengeHints] = attrs.field(factory=dict)
+		flags: dict[int, ChallengeFlags] = attrs.field(factory=dict)
 
 	# cattrs JSON converter
 	converter = make_converter()
@@ -306,5 +307,81 @@ class CTFdAPI:
 		# create target hints (serially, so the order is preserved -_-)
 		for hint in target_hints.hints:
 			await self._create_hint(target_hints.id, hint.content)
+
+		return True
+
+
+	async def get_flags(self, challenge_id: int) -> ChallengeFlags:
+		"""Get flags of an existing CTFd challenge.
+
+		Args:
+			challenge_id (int): The ID of the challenge to return info for.
+		"""
+
+		# use cache if available
+		try:
+			return self._cache.flags[challenge_id]
+		except KeyError:
+			pass
+
+		# make the API request
+		resp = await self._client.get(f"/api/v1/challenges/{challenge_id}/flags")
+		# throw an exception for failures
+		resp.raise_for_status()
+
+		# parse JSON response
+		raw = resp.json()
+
+		# sanity check (if status code is 200, success *should* be True)
+		assert raw["success"]
+
+		# structure the data
+		structured = self.converter.structure({"id": challenge_id, "flags": raw["data"]}, ChallengeFlags)
+
+		# cache + return
+		self._cache.flags[challenge_id] = structured
+		return structured
+
+	async def _create_flag(self, challenge_id: int, flag_content: str):
+		resp = await self._client.post(f"/api/v1/flags", json={"challenge_id": challenge_id, "content": flag_content})
+		resp.raise_for_status()
+
+	async def _delete_flag(self, flag_id: int):
+		resp = await self._client.delete(f"/api/v1/flags/{flag_id}")
+		resp.raise_for_status()
+
+	async def update_flags(self, target_flags: ChallengeFlags, dry_run: bool = False) -> bool:
+		"""Replace all flags on a challenge with the given flags.
+
+		Args:
+			target_flags (ChallengeFlags): The challenge flags that should exist.
+			dry_run (bool): If True, skip making any changes.
+
+		Returns:
+			True if changes were / would be made, False otherwise.
+		"""
+
+		# get pre-existing flags
+		initial_flags = await self.get_flags(target_flags.id)
+
+		# determine if we need to change anything
+		if target_flags.matches_values_of(initial_flags):
+			# no changes required
+			return False
+		elif dry_run:
+			# this is a dry-run, skip making changes
+			return True
+
+		# drop cache entry if it exists
+		self._cache.flags.pop(target_flags.id, None)
+
+		# delete all pre-existing flags (in parallel)
+		async with anyio.create_task_group() as tg:
+			for flag in initial_flags.flags:
+				tg.start_soon(self._delete_flag, flag.id)
+
+		# create target flags (serially, so the order is preserved -_-)
+		for flag in target_flags.flags:
+			await self._create_flag(target_flags.id, flag.content)
 
 		return True

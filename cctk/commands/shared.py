@@ -14,7 +14,7 @@ from rich.table import Table
 from rich.text import Text
 
 from cctk.ctfd import Challenge as RemoteChallenge
-from cctk.ctfd import ChallengeHints, ChallengeTags, CTFdAPI
+from cctk.ctfd import ChallengeFlags, ChallengeHints, ChallengeTags, CTFdAPI
 from cctk.rt import CONSOLE
 from cctk.sources.challenge import Challenge as LocalChallenge
 from cctk.sources.repository import ChallengeRepo
@@ -37,6 +37,7 @@ class ChallengeChanges(enum.Flag):
 
 	TAGS = enum.auto()
 	HINTS = enum.auto()
+	FLAGS = enum.auto()
 
 
 class DeploySource:
@@ -161,6 +162,7 @@ class DeployTarget:
 		self.challenges: dict[str, RemoteChallenge | None] = dict()
 		self.tags: dict[str, ChallengeTags | None] = dict()
 		self.hints: dict[str, ChallengeHints | None] = dict()
+		self.flags: dict[str, ChallengeFlags | None] = dict()
 
 	async def get_challenge_info(self, semaphore: anyio.Semaphore, progress: Progress, challenge_id: str):
 		"""Retrieve all live challenge information for a specific challenge."""
@@ -182,9 +184,11 @@ class DeployTarget:
 			if self.challenges[challenge_id] is not None:
 				self.tags[challenge_id] = await self.api.get_tags(cid_hash)
 				self.hints[challenge_id] = await self.api.get_hints(cid_hash)
+				self.flags[challenge_id] = await self.api.get_flags(cid_hash)
 			else:
 				self.tags[challenge_id] = None
 				self.hints[challenge_id] = None
+				self.flags[challenge_id] = None
 
 			progress.update(tid, description="Retrieved " + desc_suffix, total=1, completed=1)
 			progress.stop_task(tid)
@@ -228,6 +232,10 @@ class DeployTarget:
 			progress.update(tid, description=f"Updating hints for {chal_desc}")
 			await self.api.update_hints(ChallengeHints(cid_hash, [ChallengeHints.Hint(v) for v in src_chal.config.hints]))
 
+			# update flags
+			progress.update(tid, description=f"Updating flags for {chal_desc}")
+			await self.api.update_flags(ChallengeFlags(cid_hash, [ChallengeFlags.Flag(src_chal.config.flag)]))
+
 			# finalize status message
 			progress.update(tid, description=f"Applied changes to {chal_desc}", total=1, completed=1)
 			progress.stop_task(tid)
@@ -265,6 +273,10 @@ class DeployTarget:
 			if self.hints[cid].as_str_list() != src_chal.config.hints:  # type: ignore[union-attr]
 				changes[cid] |= ChallengeChanges.HINTS
 
+			# compare challenge flags
+			if self.flags[cid].as_str_list() != [src_chal.config.flag]:  # type: ignore[union-attr]
+				changes[cid] |= ChallengeChanges.FLAGS
+
 			# remove empty changesets
 			if changes[cid] == ChallengeChanges(0):
 				del changes[cid]
@@ -288,6 +300,7 @@ class DeployTarget:
 					ChallengeChanges.POINTS: Text("Points", style="changes.update"),
 					ChallengeChanges.TAGS: Text("Tags", style="changes.update"),
 					ChallengeChanges.HINTS: Text("Hints", style="changes.update"),
+					ChallengeChanges.FLAGS: Text("Flags", style="changes.update"),
 				}[change])
 				changelist.append(", ")
 			changelist.pop()

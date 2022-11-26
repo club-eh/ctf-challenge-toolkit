@@ -116,3 +116,39 @@ class ChallengeHints:
 				return False
 		# no differences found
 		return True
+
+
+@attrs.define
+class ChallengeFlags:
+	"""Model for reading/writing challenge flags.
+
+	- (read) `GET /challenges/{challenge_id}/flags`
+	- (create) `POST /flags`
+	- (delete) `DELETE /flags/{flag_id}`
+	"""
+
+	@attrs.define
+	class Flag:
+		"""An individual challenge flag."""
+		content: str
+		id: int | None = None
+
+	# Numeric challenge ID (database index)
+	id: int
+	# List of flag objects
+	flags: list[Flag]
+
+	def as_str_list(self) -> list[str]:
+		return list(flag.content for flag in self.flags)
+
+	def matches_values_of(self, other: "ChallengeFlags") -> bool:
+		"""Checks whether this list of flags matches another list of flags."""
+		# compare list length
+		if len(self.flags) != len(other.flags):
+			return False
+		# compare tag values
+		for a, b in zip(self.flags, other.flags):
+			if a.content != b.content:
+				return False
+		# no differences found
+		return True
