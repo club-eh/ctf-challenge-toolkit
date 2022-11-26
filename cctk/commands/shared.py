@@ -239,9 +239,12 @@ class DeployTarget:
 		for cid, tgt_chal in self.challenges.items():
 			src_chal = deploy_src.challenges[cid]
 
+			# check if the entire challenge needs to be created
 			if tgt_chal is None:
 				changes[cid] = ChallengeChanges.CREATE_NEW
 				continue
+
+			# create flag object for this challenge
 			changes[cid] = ChallengeChanges(0)
 
 			# compare base challenge data
@@ -255,11 +258,11 @@ class DeployTarget:
 				changes[cid] |= ChallengeChanges.POINTS
 
 			# compare challenge tags
-			if self.tags[cid].as_str_list() != src_chal.get_tag_list():
+			if self.tags[cid].as_str_list() != src_chal.get_tag_list():  # type: ignore[union-attr]
 				changes[cid] |= ChallengeChanges.TAGS
 
 			# compare challenge hints
-			if self.hints[cid].as_str_list() != src_chal.config.hints:
+			if self.hints[cid].as_str_list() != src_chal.config.hints:  # type: ignore[union-attr]
 				changes[cid] |= ChallengeChanges.HINTS
 
 			# remove empty changesets
