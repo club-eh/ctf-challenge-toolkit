@@ -33,7 +33,6 @@ class ChallengeChanges(enum.Flag):
 	DESCRIPTION = enum.auto()
 	CATEGORY = enum.auto()
 	POINTS = enum.auto()
-	BASE_CHALLENGE_DATA = NAME | DESCRIPTION | CATEGORY | POINTS
 
 	TAGS = enum.auto()
 	HINTS = enum.auto()
@@ -291,18 +290,19 @@ class DeployTarget:
 
 		for cid, chal_changes in sorted(changes.items()):
 			changelist: list[str | Text] = list()
-			for change in chal_changes:
-				changelist.append({
-					ChallengeChanges.CREATE_NEW: Text("Create new challenge", style="changes.create"),
-					ChallengeChanges.NAME: Text("Name", style="changes.update"),
-					ChallengeChanges.DESCRIPTION: Text("Description", style="changes.update"),
-					ChallengeChanges.CATEGORY: Text("Category", style="changes.update"),
-					ChallengeChanges.POINTS: Text("Points", style="changes.update"),
-					ChallengeChanges.TAGS: Text("Tags", style="changes.update"),
-					ChallengeChanges.HINTS: Text("Hints", style="changes.update"),
-					ChallengeChanges.FLAGS: Text("Flags", style="changes.update"),
-				}[change])
-				changelist.append(", ")
+			for change in ChallengeChanges:
+				if change in chal_changes:
+					changelist.append({
+						ChallengeChanges.CREATE_NEW: Text("Create new challenge", style="changes.create"),
+						ChallengeChanges.NAME: Text("Name", style="changes.update"),
+						ChallengeChanges.DESCRIPTION: Text("Description", style="changes.update"),
+						ChallengeChanges.CATEGORY: Text("Category", style="changes.update"),
+						ChallengeChanges.POINTS: Text("Points", style="changes.update"),
+						ChallengeChanges.TAGS: Text("Tags", style="changes.update"),
+						ChallengeChanges.HINTS: Text("Hints", style="changes.update"),
+						ChallengeChanges.FLAGS: Text("Flags", style="changes.update"),
+					}[change])
+					changelist.append(", ")
 			changelist.pop()
 			table.add_row(Text(cid, style="green3"), Text.assemble(*changelist))
 
