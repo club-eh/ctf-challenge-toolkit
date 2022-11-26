@@ -14,7 +14,7 @@ from rich.table import Table
 from rich.text import Text
 
 from cctk.ctfd import Challenge as RemoteChallenge
-from cctk.ctfd import ChallengeTags, CTFdAPI
+from cctk.ctfd import ChallengeHints, ChallengeTags, CTFdAPI
 from cctk.rt import CONSOLE
 from cctk.sources.challenge import Challenge as LocalChallenge
 from cctk.sources.repository import ChallengeRepo
@@ -36,6 +36,7 @@ class ChallengeChanges(enum.Flag):
 	BASE_CHALLENGE_DATA = NAME | DESCRIPTION | CATEGORY | POINTS
 
 	TAGS = enum.auto()
+	HINTS = enum.auto()
 
 
 class DeploySource:
@@ -159,6 +160,7 @@ class DeployTarget:
 
 		self.challenges: dict[str, RemoteChallenge | None] = dict()
 		self.tags: dict[str, ChallengeTags | None] = dict()
+		self.hints: dict[str, ChallengeHints | None] = dict()
 
 	async def get_challenge_info(self, semaphore: anyio.Semaphore, progress: Progress, challenge_id: str):
 		"""Retrieve all live challenge information for a specific challenge."""
@@ -179,8 +181,10 @@ class DeployTarget:
 			# associated data (tags, hints, flags, files)
 			if self.challenges[challenge_id] is not None:
 				self.tags[challenge_id] = await self.api.get_tags(cid_hash)
+				self.hints[challenge_id] = await self.api.get_hints(cid_hash)
 			else:
 				self.tags[challenge_id] = None
+				self.hints[challenge_id] = None
 
 			progress.update(tid, description="Retrieved " + desc_suffix, total=1, completed=1)
 			progress.stop_task(tid)
@@ -220,6 +224,10 @@ class DeployTarget:
 			progress.update(tid, description=f"Updating tags for {chal_desc}")
 			await self.api.update_tags(ChallengeTags(cid_hash, [ChallengeTags.Tag(v) for v in src_chal.get_tag_list()]))
 
+			# update hints
+			progress.update(tid, description=f"Updating hints for {chal_desc}")
+			await self.api.update_hints(ChallengeHints(cid_hash, [ChallengeHints.Hint(v) for v in src_chal.config.hints]))
+
 			# finalize status message
 			progress.update(tid, description=f"Applied changes to {chal_desc}", total=1, completed=1)
 			progress.stop_task(tid)
@@ -250,6 +258,10 @@ class DeployTarget:
 			if self.tags[cid].as_str_list() != src_chal.get_tag_list():
 				changes[cid] |= ChallengeChanges.TAGS
 
+			# compare challenge hints
+			if self.hints[cid].as_str_list() != src_chal.config.hints:
+				changes[cid] |= ChallengeChanges.HINTS
+
 			# remove empty changesets
 			if changes[cid] == ChallengeChanges(0):
 				del changes[cid]
@@ -272,6 +284,7 @@ class DeployTarget:
 					ChallengeChanges.CATEGORY: Text("Category", style="changes.update"),
 					ChallengeChanges.POINTS: Text("Points", style="changes.update"),
 					ChallengeChanges.TAGS: Text("Tags", style="changes.update"),
+					ChallengeChanges.HINTS: Text("Hints", style="changes.update"),
 				}[change])
 				changelist.append(", ")
 			changelist.pop()

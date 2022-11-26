@@ -80,3 +80,39 @@ class ChallengeTags:
 				return False
 		# no differences found
 		return True
+
+
+@attrs.define
+class ChallengeHints:
+	"""Model for reading/writing challenge hints.
+
+	- (read) `GET /challenges/{challenge_id}/hints`
+	- (create) `POST /hints`
+	- (delete) `DELETE /hints/{hint_id}`
+	"""
+
+	@attrs.define
+	class Hint:
+		"""An individual challenge hint."""
+		content: str
+		id: int | None = None
+
+	# Numeric challenge ID (database index)
+	id: int
+	# List of hint objects
+	hints: list[Hint]
+
+	def as_str_list(self) -> list[str]:
+		return list(hint.content for hint in self.hints)
+
+	def matches_values_of(self, other: "ChallengeHints") -> bool:
+		"""Checks whether this list of hints matches another list of hints."""
+		# compare list length
+		if len(self.hints) != len(other.hints):
+			return False
+		# compare tag values
+		for a, b in zip(self.hints, other.hints):
+			if a.content != b.content:
+				return False
+		# no differences found
+		return True
