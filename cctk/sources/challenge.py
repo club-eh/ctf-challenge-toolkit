@@ -304,3 +304,8 @@ class Challenge:
 						raise Exception(f"Unknown FileWalkerWarning: {warning!r}")
 
 		return results, False
+
+	def get_tag_list(self) -> list[str]:
+		"""Return the list of actual CTFd tags (including auto-added tags)."""
+
+		return [self.config.difficulty.as_tag(), *self.config.tags]

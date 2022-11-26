@@ -21,6 +21,9 @@ THEME = rich.theme.Theme({
 	"challenge.difficulty.easy": "spring_green3",
 	"challenge.difficulty.medium": "yellow3",
 	"challenge.difficulty.hard": "red1",
+
+	"changes.create": "spring_green3",
+	"changes.update": "yellow3",
 }, inherit=True)
 
 

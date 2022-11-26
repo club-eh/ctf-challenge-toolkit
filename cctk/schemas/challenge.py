@@ -1,4 +1,5 @@
 import enum
+import functools
 from functools import total_ordering
 
 from marshmallow import fields, Schema
@@ -12,6 +13,11 @@ class ChallengeDifficulty(enum.Enum):
 	EASY = "easy"
 	MEDIUM = "medium"
 	HARD = "hard"
+
+	@functools.cache
+	def as_tag(self) -> str:
+		"""Returns the tag value meant to be displayed to players."""
+		return self.value.title()
 
 	def _to_int(self) -> int:
 		"""Used for ordering only."""

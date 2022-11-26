@@ -39,6 +39,7 @@ def root(ctx: click.Context, repo: str | None, verbose: bool):
 
 # define submodules
 __all__ = [
+	"deploy",
 	"validate",
 	"version",
 ]

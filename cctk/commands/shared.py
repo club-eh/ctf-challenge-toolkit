@@ -1,20 +1,40 @@
 """Shared code for parsing, interpreting, validating, etc."""
 
+import enum
 from pathlib import Path
 
+import anyio
 from rich import box
 from rich.console import Group, RenderableType
 from rich.padding import Padding
 from rich.panel import Panel
 from rich.pretty import Pretty
+from rich.progress import Progress
 from rich.table import Table
 from rich.text import Text
 
+from cctk.ctfd import CTFdAPI, Challenge as RemoteChallenge, ChallengeTags
+from cctk.util import challenge_id_hash
 from cctk.rt import CONSOLE
-from cctk.sources.challenge import Challenge
+from cctk.sources.challenge import Challenge as LocalChallenge
 from cctk.sources.repository import ChallengeRepo
 from cctk.types import AppConfig
 from cctk.validation import FatalValidationError, Severity, ValidationBook, ValidationError
+
+
+class ChallengeChanges(enum.Flag):
+	"""Simple representation of the changes required to bring a live challenge in line with its intended state."""
+
+	CREATE_NEW = enum.auto()
+	"""Special flag meaning the entire challenge needs to be created."""
+
+	NAME = enum.auto()
+	DESCRIPTION = enum.auto()
+	CATEGORY = enum.auto()
+	POINTS = enum.auto()
+	BASE_CHALLENGE_DATA = NAME | DESCRIPTION | CATEGORY | POINTS
+
+	TAGS = enum.auto()
 
 
 class DeploySource:
@@ -80,11 +100,11 @@ class DeploySource:
 
 		with CONSOLE.status("Validating challenges") as status:
 			# create map to store challenges
-			self.challenges: dict[str, Challenge] = dict()
+			self.challenges: dict[str, LocalChallenge] = dict()
 
 			for challenge_id in challenge_ids:
 				try:
-					self.challenges[challenge_id] = Challenge(self.repo, book, repo_path / challenge_id, challenge_id)
+					self.challenges[challenge_id] = LocalChallenge(self.repo, book, repo_path / challenge_id, challenge_id)
 				except ValidationError:
 					# we handle these validation errors later, when deployment checks whether all challenges loaded successfully
 					self._failed_challenges.add(challenge_id)
@@ -131,6 +151,133 @@ class DeploySource:
 		return table
 
 
+class DeployTarget:
+	def __init__(self, api: CTFdAPI, verbose: bool = False):
+		self.api = api
+		self.verbose = verbose
+
+		self.challenges: dict[str, RemoteChallenge | None] = dict()
+		self.tags: dict[str, ChallengeTags | None] = dict()
+
+	async def get_challenge_info(self, semaphore: anyio.Semaphore, progress: Progress, challenge_id: str):
+		"""Retrieve all live challenge information for a specific challenge."""
+
+		cid_hash = challenge_id_hash(challenge_id)
+
+		if self.verbose:
+			desc_suffix = f"live challenge data for [{cid_hash}] {challenge_id}"
+		else:
+			desc_suffix = f"live challenge data for {challenge_id}"
+
+		async with semaphore:
+			tid = progress.add_task("Retrieving " + desc_suffix, total=None)
+
+			# base challenge data
+			self.challenges[challenge_id] = await self.api.get_challenge(challenge_id_hash(challenge_id))
+
+			# associated data (tags, hints, flags, files)
+			if self.challenges[challenge_id] is not None:
+				self.tags[challenge_id] = await self.api.get_tags(cid_hash)
+			else:
+				self.tags[challenge_id] = None
+
+			progress.update(tid, description="Retrieved " + desc_suffix, total=1, completed=1)
+			progress.stop_task(tid)
+
+	async def apply_changes_to_challenge(self, semaphore: anyio.Semaphore, progress: Progress, deploy_src: DeploySource, challenge_id: str, changes: ChallengeChanges):
+		"""Apply specified changes to the target CTFd instance."""
+
+		cid_hash = challenge_id_hash(challenge_id)
+
+		if self.verbose:
+			chal_desc = f"[{cid_hash}] {challenge_id}"
+		else:
+			chal_desc = challenge_id
+
+		async with semaphore:
+			tid = progress.add_task(f"Applying changes to {chal_desc}", total=None)
+
+			src_chal = deploy_src.challenges[challenge_id]
+			intended_chal = RemoteChallenge(
+				id=cid_hash,
+				name=src_chal.config.name,
+				description=src_chal.config.description,
+				category=src_chal.config.category,
+				value=src_chal.config.points,
+			)
+
+			if ChallengeChanges.CREATE_NEW in changes:
+				progress.update(tid, description=f"Creating new challenge: {chal_desc}")
+				# create the entire challenge from scratch
+				await self.api.create_challenge(intended_chal)
+			else:
+				progress.update(tid, description=f"Updating existing challenge: {chal_desc}")
+				# update challenge to match intended state
+				await self.api.update_challenge(intended_chal)
+
+			# update tags
+			progress.update(tid, description=f"Updating tags for {chal_desc}")
+			await self.api.update_tags(ChallengeTags(cid_hash, [ChallengeTags.Tag(v) for v in src_chal.get_tag_list()]))
+
+			progress.update(tid, description=f"Applied changes to {chal_desc}", total=1, completed=1)
+			progress.stop_task(tid)
+
+
+	def compare_against_sources(self, deploy_src: DeploySource) -> dict[str, ChallengeChanges]:
+		changes = dict()
+
+		for cid, tgt_chal in self.challenges.items():
+			src_chal = deploy_src.challenges[cid]
+
+			if tgt_chal is None:
+				changes[cid] = ChallengeChanges.CREATE_NEW
+				continue
+			changes[cid] = ChallengeChanges(0)
+
+			# compare base challenge data
+			if tgt_chal.name != src_chal.config.name:
+				changes[cid] |= ChallengeChanges.NAME
+			if tgt_chal.description != src_chal.config.description:
+				changes[cid] |= ChallengeChanges.DESCRIPTION
+			if tgt_chal.category != src_chal.config.category:
+				changes[cid] |= ChallengeChanges.CATEGORY
+			if tgt_chal.value != src_chal.config.points:
+				changes[cid] |= ChallengeChanges.POINTS
+
+			# compare challenge tags
+			if self.tags[cid].as_str_list() != src_chal.get_tag_list():
+				changes[cid] |= ChallengeChanges.TAGS
+
+			# remove empty changesets
+			if changes[cid] == ChallengeChanges(0):
+				del changes[cid]
+
+		return changes
+
+	def rich_change_summary(self, changes: dict[str, ChallengeChanges], table: Table) -> Table:
+		"""Fill a table with a summary of all required changes to the live challenges."""
+
+		for header in ["ID", "Changes (green -> create; yellow -> modify)"]:
+			table.add_column(header)
+
+		for cid, chal_changes in sorted(changes.items()):
+			changelist = list()
+			for change in chal_changes:
+				changelist.append({
+					ChallengeChanges.CREATE_NEW: Text("Create new challenge", style="changes.create"),
+					ChallengeChanges.NAME: Text("Name", style="changes.update"),
+					ChallengeChanges.DESCRIPTION: Text("Description", style="changes.update"),
+					ChallengeChanges.CATEGORY: Text("Category", style="changes.update"),
+					ChallengeChanges.POINTS: Text("Points", style="changes.update"),
+					ChallengeChanges.TAGS: Text("Tags", style="changes.update"),
+				}[change])
+				changelist.append(", ")
+			changelist.pop()
+			table.add_row(Text(cid, style="green3"), Text.assemble(*changelist))
+
+		return table
+
+
 def do_validation(app_cfg: AppConfig, challenges: tuple[str], skip_ids: tuple[str]) -> tuple[DeploySource, ValidationBook]:
 	"""Executes user-visible validation, used by both `validate` and `deploy` commands."""
 
@@ -169,7 +316,7 @@ def do_validation(app_cfg: AppConfig, challenges: tuple[str], skip_ids: tuple[st
 		# newline to separate summary from previous output
 		"",
 		# panel containing tables
-		Panel(Group(*summary_items), title="Summary", expand=False, border_style="cyan"),
+		Panel(Group(*summary_items), title="Validation Summary", expand=False, border_style="cyan"),
 	)
 
 	return deploy_source, validation_book
