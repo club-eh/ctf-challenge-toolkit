@@ -6,7 +6,7 @@ import httpx
 from .models import *
 
 
-API_TIMEOUT = 3.0
+API_TIMEOUT = 10.0
 
 
 class CTFdAPI:
