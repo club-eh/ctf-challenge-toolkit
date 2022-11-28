@@ -19,6 +19,7 @@ from cctk.validation import Severity, Source, ValidationBook, ValidationError
 @attrs.define(frozen=True)
 class ChallengeRepoConfig:
 	categories: list[str]
+	url: str | None = None
 
 
 	@classmethod
@@ -87,6 +88,11 @@ class ChallengeRepo:
 	def categories(self) -> list[str]:
 		"""Return a list of category IDs, as defined in the repo config file."""
 		return self.config.categories
+
+	@property
+	def url(self) -> str | None:
+		"""Return the configured URL, as defined in the repo config file (if it is defined)."""
+		return self.config.url
 
 	def find_challenges(self) -> Iterator[str]:
 		"""Collect and return a list of all challenges within this repository."""

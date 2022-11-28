@@ -24,11 +24,12 @@ CONCURRENT_WRITES = 3
 
 
 @root.command()
+@click.option("-u", "--url", help="URL of the CTFd instance to deploy to (overrides repo config).")
+@click.option("-t", "--token", "api_token", help="API token for the CTFd instance (overrides env variable).")
 @click.option("-s", "--skip", "skip_ids", metavar="CHALLENGE_ID", multiple=True, help="IDs of challenges to ignore.")
-@click.argument("url", nargs=1)
 @click.argument("challenges", nargs=-1)
 @click.pass_context
-async def deploy(ctx: click.Context, url: str, challenges: tuple[str], skip_ids: tuple[str]):
+async def deploy(ctx: click.Context, url: str | None, api_token: str | None, challenges: tuple[str], skip_ids: tuple[str]):
 	"""Deploy challenges to a live CTFd instance.
 
 	Can deploy either specific challenges, or all challenges in the entire repository.
@@ -48,13 +49,26 @@ async def deploy(ctx: click.Context, url: str, challenges: tuple[str], skip_ids:
 		raise SystemExit(1)
 
 
-	# get CTFd API token
-	try:
-		# retrieve from environment variable
-		api_token = os.environ["CTFD_API_TOKEN"]
-	except KeyError:
-		# request CTFd API token from user
-		api_token = Prompt.ask("Enter a CTFd API token to continue (input will be hidden)", console=CONSOLE, password=True)
+	# get CTFd URL (CLI, env variable, repo config, prompt user)
+	if url is None:
+		try:
+			# retrieve from environment variable
+			url = os.environ["CTFD_URL"]
+		except KeyError:
+			# retrieve from repository config
+			url = deploy_src.repo.url
+			if url is None:
+				# last resort: ask user directly
+				url = Prompt.ask("Enter the CTFd URL (including the scheme, excluding any path)", console=CONSOLE)
+
+	# get CTFd API token (CLI, env variable, prompt user)
+	if api_token is None:
+		try:
+			# retrieve from environment variable
+			api_token = os.environ["CTFD_API_TOKEN"]
+		except KeyError:
+			# request CTFd API token from user
+			api_token = Prompt.ask("Enter a CTFd API token to continue (input will be hidden)", console=CONSOLE, password=True)
 
 	# initialize CTFd API interface
 	api = CTFdAPI(url, api_token)

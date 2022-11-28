@@ -1,4 +1,4 @@
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validate
 
 from . import validate_unique, VALIDATORS_STRING_ID
 
@@ -11,3 +11,5 @@ class ChallengeRepoConfigSchema(Schema):
 		required = True,
 		validate = validate_unique,
 	)
+
+	url = fields.String(required=False, load_default=None, validate=validate.URL(schemes=["http", "https"]))
