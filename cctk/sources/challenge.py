@@ -255,7 +255,7 @@ class Challenge:
 					encountered_error = True
 
 			# validate static files
-			if self._get_static_files(pen)[1]:
+			if self._get_matched_static_files(pen)[1]:
 				encountered_error = True
 
 
@@ -264,7 +264,7 @@ class Challenge:
 		if encountered_error:
 			raise ValidationError
 
-	def _get_static_files(self, pen: ValidationBoundPen | None = None) -> tuple[list[Path], bool]:
+	def _get_matched_static_files(self, pen: ValidationBoundPen | None = None) -> tuple[list[Path], bool]:
 		"""
 		Apply the static include and exclude patterns to the challenge directory, and return all matching filepaths.
 
@@ -278,8 +278,6 @@ class Challenge:
 			bool: True if a validation error occurred, False otherwise.
 		"""
 
-		assert self.config.static is not None
-
 		# use cached FileWalker if available, create one otherwise
 		self._static_fw: FileWalker
 		try:
@@ -287,8 +285,8 @@ class Challenge:
 		except AttributeError:
 			fw = self._static_fw = FileWalker(
 				self.path,
-				self.config.static.include_patterns or list(),
-				self.config.static.exclude_patterns or list(),
+				self.config.static.include_patterns,
+				self.config.static.exclude_patterns,
 			)
 
 		results, warnings = fw.walk_with_warnings()
