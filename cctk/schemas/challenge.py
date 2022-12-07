@@ -40,7 +40,7 @@ class ChallengeConfigMeta(Schema):
 	category = fields.String(required=True, validate=VALIDATORS_STRING_ID)
 	difficulty = fields.Enum(ChallengeDifficulty, by_value=True, required=True)
 	description = fields.String(required=False)  # not required for development
-	tags = fields.List(fields.String(), required=False, load_default=[])
+	tags = fields.List(fields.String(), required=False, load_default=list)
 
 
 class ChallengeConfigHint(Schema):
@@ -60,9 +60,9 @@ class ChallengeConfigScoring(Schema):
 class ChallengeConfigStatic(Schema):
 	"""Marshmallow schema for the [static] section of the challenge config."""
 
-	include_patterns = fields.List(fields.String(), required=False, load_default=[], data_key="include")
-	exclude_patterns = fields.List(fields.String(), required=False, load_default=[], data_key="exclude")
-	rm_prefixes = fields.List(fields.String(), required=False, load_default=[])
+	include_patterns = fields.List(fields.String(), required=False, load_default=list, data_key="include")
+	exclude_patterns = fields.List(fields.String(), required=False, load_default=list, data_key="exclude")
+	rm_prefixes = fields.List(fields.String(), required=False, load_default=list)
 
 
 class ChallengeConfigDynamic(Schema):
