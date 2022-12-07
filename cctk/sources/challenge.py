@@ -19,12 +19,15 @@ from cctk.validation import Severity, Source, ValidationBook, ValidationBoundPen
 
 @attrs.define(frozen=True)
 class StaticConfig:
+	# whether to archive all files into a tarball (defaults to true)
+	# ignored if only one file exists
+	make_archive: bool = True
 	# list of glob patterns to include
-	include_patterns: list[str]
+	include_patterns: list[str] = attrs.field(factory=list)
 	# list of glob patterns to exclude
-	exclude_patterns: list[str]
+	exclude_patterns: list[str] = attrs.field(factory=list)
 	# list of prefixes to remove from paths
-	rm_prefixes: list[str]
+	rm_prefixes: list[str] = attrs.field(factory=list)
 
 
 @attrs.define(frozen=True)
@@ -50,7 +53,7 @@ class ChallengeConfig:
 
 	hints: list[str]
 
-	static: StaticConfig | None
+	static: StaticConfig
 	dynamic: dict[str, ContainerConfig] | None
 
 
@@ -98,9 +101,8 @@ class ChallengeConfig:
 			# collapse list of hint structures
 			"hints": [hint["content"] for hint in cleaned_data.get("hints", [])],
 
-			# construct StaticConfig object, if config provided
-			"static": None if cleaned_data.get("static") is None else
-				StaticConfig(**cleaned_data["static"]),
+			# construct StaticConfig object
+			"static": StaticConfig(**cleaned_data.get("static", {})),
 
 			# construct ContainerConfig objects for dynamic sections (if provided)
 			"dynamic": None if cleaned_data.get("dynamic") is None else

@@ -60,9 +60,10 @@ class ChallengeConfigScoring(Schema):
 class ChallengeConfigStatic(Schema):
 	"""Marshmallow schema for the [static] section of the challenge config."""
 
-	include_patterns = fields.List(fields.String(), required=False, load_default=list, data_key="include")
-	exclude_patterns = fields.List(fields.String(), required=False, load_default=list, data_key="exclude")
-	rm_prefixes = fields.List(fields.String(), required=False, load_default=list)
+	make_archive = fields.Boolean(required=False)
+	include_patterns = fields.List(fields.String(), required=False, data_key="include")
+	exclude_patterns = fields.List(fields.String(), required=False, data_key="exclude")
+	rm_prefixes = fields.List(fields.String(), required=False)
 
 
 class ChallengeConfigDynamic(Schema):
