@@ -14,7 +14,7 @@ from rich.table import Table
 from rich.text import Text
 
 from cctk.ctfd import Challenge as RemoteChallenge
-from cctk.ctfd import ChallengeFlags, ChallengeHints, ChallengeTags, CTFdAPI
+from cctk.ctfd import ChallengeFiles, ChallengeFlags, ChallengeHints, ChallengeTags, CTFdAPI
 from cctk.rt import CONSOLE
 from cctk.sources.challenge import Challenge as LocalChallenge
 from cctk.sources.repository import ChallengeRepo
@@ -37,6 +37,7 @@ class ChallengeChanges(enum.Flag):
 	TAGS = enum.auto()
 	HINTS = enum.auto()
 	FLAGS = enum.auto()
+	FILES = enum.auto()
 
 
 class DeploySource:
@@ -162,6 +163,7 @@ class DeployTarget:
 		self.tags: dict[str, ChallengeTags | None] = dict()
 		self.hints: dict[str, ChallengeHints | None] = dict()
 		self.flags: dict[str, ChallengeFlags | None] = dict()
+		self.files: dict[str, ChallengeFiles | None] = dict()
 
 	async def get_challenge_info(self, semaphore: anyio.Semaphore, progress: Progress, challenge_id: str):
 		"""Retrieve all live challenge information for a specific challenge."""
@@ -184,10 +186,12 @@ class DeployTarget:
 				self.tags[challenge_id] = await self.api.get_tags(cid_hash)
 				self.hints[challenge_id] = await self.api.get_hints(cid_hash)
 				self.flags[challenge_id] = await self.api.get_flags(cid_hash)
+				self.files[challenge_id] = await self.api.get_files(cid_hash)
 			else:
 				self.tags[challenge_id] = None
 				self.hints[challenge_id] = None
 				self.flags[challenge_id] = None
+				self.files[challenge_id] = None
 
 			progress.update(tid, description="Retrieved " + desc_suffix, total=1, completed=1)
 			progress.stop_task(tid)
@@ -235,6 +239,10 @@ class DeployTarget:
 			progress.update(tid, description=f"Updating flags for {chal_desc}")
 			await self.api.update_flags(ChallengeFlags(cid_hash, [ChallengeFlags.Flag(src_chal.config.flag)]))
 
+			# update files
+			progress.update(tid, description=f"Updating files for {chal_desc}")
+			await self.api.update_files(ChallengeFiles(cid_hash, [ChallengeFiles.File(fn, entry.content_hash, entry.data) for fn, entry in src_chal.load_static_files().items()]))
+
 			# finalize status message
 			progress.update(tid, description=f"Applied changes to {chal_desc}", total=1, completed=1)
 			progress.stop_task(tid)
@@ -276,6 +284,16 @@ class DeployTarget:
 			if self.flags[cid].as_str_list() != [src_chal.config.flag]:  # type: ignore[union-attr]
 				changes[cid] |= ChallengeChanges.FLAGS
 
+			# compare challenge files
+			existing_fileset = set((entry.filename, entry.content_label) for entry in self.files[cid].as_str_set())  # type: ignore[union-attr]
+			target_fileset = set((name, entry.content_hash) for name, entry in src_chal.load_static_files().items())
+			if existing_fileset != target_fileset:
+				changes[cid] |= ChallengeChanges.FILES
+			else:
+				# drop files from memory (we don't need them anymore)
+				src_chal.drop_static_files()
+			del existing_fileset, target_fileset
+
 			# remove empty changesets
 			if changes[cid] == ChallengeChanges(0):
 				del changes[cid]
@@ -301,6 +319,7 @@ class DeployTarget:
 						ChallengeChanges.TAGS: Text("Tags", style="changes.update"),
 						ChallengeChanges.HINTS: Text("Hints", style="changes.update"),
 						ChallengeChanges.FLAGS: Text("Flags", style="changes.update"),
+						ChallengeChanges.FILES: Text("Files", style="changes.update"),
 					}[change])
 					changelist.append(", ")
 			changelist.pop()
