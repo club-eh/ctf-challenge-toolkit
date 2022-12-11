@@ -10,8 +10,9 @@ A CLI tool for automating challenge management and deployment.
 To validate a challenge (or multiple challenges), use the `validate` subcommand:
 
 ```shell
-$ cctk validate example  # validates the `example` challenge
-$ cctk validate          # validates all challenges in the repo
+cctk validate example     # validates the `example` challenge
+cctk validate             # validates all challenges in the repo
+cctk validate -s example  # validates all challenges in the repo, skipping the `example` challenge
 ```
 
 If any issues are found, they will be displayed and a table summarizing the issues will be printed at the end.  
