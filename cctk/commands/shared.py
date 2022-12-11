@@ -250,7 +250,6 @@ class DeployTarget:
 			progress.update(tid, description=f"Applied changes to {chal_desc}", total=1, completed=1)
 			progress.stop_task(tid)
 
-
 	def compare_against_sources(self, deploy_src: DeploySource) -> dict[str, ChallengeChanges]:
 		"""Compare the given live state against the local, intended state.
 
@@ -313,7 +312,7 @@ class DeployTarget:
 		return changes
 
 	def rich_change_summary(self, changes: dict[str, ChallengeChanges], table: Table) -> Table:
-		"""Fill a table with a summary of all required changes to the live challenges."""
+		"""Fill a table with a summary of all pending changes to the live challenges."""
 
 		for header in ["ID", "Changes (green -> create; yellow -> modify)"]:
 			table.add_column(header)

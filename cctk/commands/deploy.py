@@ -86,26 +86,26 @@ async def deploy(ctx: click.Context, url: str | None, api_token: str | None, cha
 
 		# determine required changes
 		tid = progress.add_task("Comparing intended state to live state")
-		required_changes = deploy_tgt.compare_against_sources(deploy_src)
+		pending_changes = deploy_tgt.compare_against_sources(deploy_src)
 		progress.stop_task(tid)
 	finally:
 		progress.stop()
 
 	# generate change table
 	changes_table: RenderableType
-	if len(required_changes):
-		changes_table = deploy_tgt.rich_change_summary(required_changes, Table(title=Text.assemble(("Pending Changes", "cyan underline"), ""), title_justify="left", box=box.MINIMAL))
+	if len(pending_changes):
+		changes_table = deploy_tgt.rich_change_summary(pending_changes, Table(title=Text.assemble(("Pending Changes", "cyan underline"), ""), title_justify="left", box=box.MINIMAL))
 	else:
 		changes_table = Text("No changes are required!", style="green3")
 
-	# display required changes
+	# display deploy summary
 	CONSOLE.print(
 		# panel containing tables
 		Panel(Group(changes_table), title="Deploy Summary", expand=False, border_style="cyan"),
 	)
 
 	# exit if no changes to be made
-	if not len(required_changes):
+	if not len(pending_changes):
 		return
 
 	# ask user if they want to make the displayed changes
@@ -118,7 +118,7 @@ async def deploy(ctx: click.Context, url: str | None, api_token: str | None, cha
 	progress.start()
 	try:
 		async with anyio.create_task_group() as tg:
-			for challenge_id, changes in required_changes.items():
+			for challenge_id, changes in pending_changes.items():
 				tg.start_soon(deploy_tgt.apply_changes_to_challenge, semaphore, progress, deploy_src, challenge_id, changes)
 	finally:
 		progress.stop()
