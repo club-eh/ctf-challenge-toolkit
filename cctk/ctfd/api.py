@@ -138,6 +138,10 @@ class CTFdAPI:
 		# get pre-existing challenge
 		initial_chal = await self.get_challenge(challenge.id)
 
+		# set target challenge visibility to match existing challenge
+		if initial_chal is not None:
+			challenge.state = initial_chal.state
+
 		# determine if we need to change anything
 		if challenge == initial_chal:
 			# no changes required
