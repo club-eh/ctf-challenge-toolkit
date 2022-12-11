@@ -3,6 +3,14 @@
 A CLI tool for automating challenge management and deployment.
 
 
+## Installation
+
+Use `pip` to install the latest development version (also handles updating):
+```shell
+pip install --force-reinstall 'git+https://git.sb418.net/sudoBash418/ctf-challenge-toolkit.git'
+```
+
+
 ## Usage
 
 ### Validation
