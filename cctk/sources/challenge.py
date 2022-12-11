@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import decimal
 from functools import total_ordering
+import hashlib
+import io
 from itertools import chain
+import os
 from pathlib import Path
+import tarfile
 
 import attrs
 import marshmallow
@@ -134,6 +138,12 @@ class ChallengeConfig:
 		return cls(**final_data)
 
 
+@attrs.define()
+class StaticFileEntry:
+	content_hash: str
+	data: io.BytesIO
+
+
 @total_ordering
 class Challenge:
 	"""Interface to a challenge directory."""
@@ -174,6 +184,9 @@ class Challenge:
 		self.path = path
 		self.config_path = path / CHALLENGE_CONFIG_FILENAME
 		self.challenge_id = challenge_id
+
+		# init caches
+		self._static_files: dict[str, StaticFileEntry] | None = None
 
 
 		# sanity-check challenge directory
@@ -305,7 +318,125 @@ class Challenge:
 
 		return results, False
 
+	def _get_all_static_files(self) -> list[Path]:
+		"""
+		Return paths of all static files.
+
+		Includes files from:
+		- `include_patterns` + `exclude_patterns` (without `rm_prefixes` applied)
+		- `<challenge dir>/static`
+
+		Returns:
+			list[Path]: A list of all static filepaths (relative to challenge directory).
+		"""
+
+		self._static_file_list: list[Path]
+		try:
+			return self._static_file_list
+		except AttributeError:
+			pass
+
+		# get pattern-matched paths
+		pattern_paths, _ = self._get_matched_static_files()
+
+		# get files from `static/`
+		static_paths: list[Path] = list()
+		for dirpath, _dirnames, filenames in os.walk(self.path / "static"):
+			static_paths.extend((Path(dirpath) / filename for filename in filenames))
+
+		# store combined list in cache
+		self._static_file_list = pattern_paths + static_paths
+
+		# strip prefixes (make paths relative to challenge directory)
+		self._static_file_list = [abs_path.relative_to(self.path) for abs_path in self._static_file_list]
+
+		# return results
+		return self._static_file_list
+
 	def get_tag_list(self) -> list[str]:
 		"""Return the list of actual CTFd tags (including auto-added tags)."""
 
 		return [self.config.difficulty.as_tag(), *self.config.tags]
+
+	def load_static_files(self) -> dict[str, StaticFileEntry]:
+		"""Loads all static files into memory.
+
+		If required, files will be packed into an archive.
+
+		Returns:
+			A dictionary of filenames to file entries.
+		"""
+
+		# return cache if available
+		if self._static_files is not None:
+			return self._static_files
+
+		# determine whether we want to upload an archive of the files
+		if len(self._get_all_static_files()) > 1:
+			make_archive = self.config.static.make_archive
+		else:
+			make_archive = False
+
+		# last-ditch effort to prevent insanity
+		if not make_archive and len(self._get_all_static_files()) > 25:
+			raise AssertionError("cowardly refusing to upload over 25 individual files!")
+
+		# initialize in-memory file dict
+		file_contents: dict[str, io.BytesIO] = dict()
+
+		if make_archive:
+			# create raw in-memory file
+			archive_buf = io.BytesIO()
+			# create TarFile
+			archive = tarfile.open(fileobj=archive_buf, mode='w')
+
+			# define TarInfo filter
+			def filter_tarinfo(info: tarfile.TarInfo) -> tarfile.TarInfo:
+				# clear unneeded information
+				info.uid = 0
+				info.gid = 0
+				info.uname = ""
+				info.gname = ""
+				info.mtime = 0
+				info.pax_headers = dict()
+
+				# remove prefixes from filepath (uses the shortest resulting filepath)
+				final_name = info.name
+				for prefix in [*self.config.static.rm_prefixes, "static"]:
+					candidate_name = info.name.removeprefix(prefix).removeprefix("/")
+					if len(candidate_name) < len(final_name):
+						final_name = candidate_name
+				info.name = final_name
+
+				return info
+
+			# add files
+			for filepath in self._get_all_static_files():
+				archive.add(self.path / filepath, filepath, recursive=False, filter=filter_tarinfo)
+
+			# finalize the archive
+			archive.close()
+
+			# add archive to file list
+			file_contents[f"challenge-files.tar"] = archive_buf
+		else:
+			# read files into memory
+			for filepath in self._get_all_static_files():
+				file_contents[filepath.name] = io.BytesIO((self.path / filepath).read_bytes())
+
+		# generate hashes + pack into final dict
+		results = {
+			filename : StaticFileEntry(
+				content_hash=hashlib.sha256(data.getbuffer()).hexdigest(),
+				data=data,
+			)
+			for filename, data in file_contents.items()
+		}
+
+		# cache + return
+		self._static_files = results
+		return self._static_files
+
+	def drop_static_files(self):
+		"""Drop cached static files from memory."""
+		self._static_files = None
