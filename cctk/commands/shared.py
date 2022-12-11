@@ -228,23 +228,27 @@ class DeployTarget:
 				await self.api.update_challenge(intended_chal)
 
 			# update tags
-			progress.update(tid, description=f"Updating tags for {chal_desc}")
-			await self.api.update_tags(ChallengeTags(cid_hash, [ChallengeTags.Tag(v) for v in src_chal.get_tag_list()]))
+			if ChallengeChanges.TAGS in changes:
+				progress.update(tid, description=f"Updating tags for {chal_desc}")
+				await self.api.update_tags(ChallengeTags(cid_hash, [ChallengeTags.Tag(v) for v in src_chal.get_tag_list()]))
 
 			# update hints
-			progress.update(tid, description=f"Updating hints for {chal_desc}")
-			await self.api.update_hints(ChallengeHints(cid_hash, [ChallengeHints.Hint(v) for v in src_chal.config.hints]))
+			if ChallengeChanges.HINTS in changes:
+				progress.update(tid, description=f"Updating hints for {chal_desc}")
+				await self.api.update_hints(ChallengeHints(cid_hash, [ChallengeHints.Hint(v) for v in src_chal.config.hints]))
 
 			# update flags
-			progress.update(tid, description=f"Updating flags for {chal_desc}")
-			await self.api.update_flags(ChallengeFlags(cid_hash, [ChallengeFlags.Flag(src_chal.config.flag)]))
+			if ChallengeChanges.FLAGS in changes:
+				progress.update(tid, description=f"Updating flags for {chal_desc}")
+				await self.api.update_flags(ChallengeFlags(cid_hash, [ChallengeFlags.Flag(src_chal.config.flag)]))
 
 			# update files
-			progress.update(tid, description=f"Updating files for {chal_desc}")
-			await self.api.update_files(ChallengeFiles(cid_hash, [
-				ChallengeFiles.File(filename, entry.content_hash, entry.data)
-				for filename, entry in src_chal.load_static_files().items()
-			]))
+			if ChallengeChanges.FILES in changes:
+				progress.update(tid, description=f"Updating files for {chal_desc}")
+				await self.api.update_files(ChallengeFiles(cid_hash, [
+					ChallengeFiles.File(filename, entry.content_hash, entry.data)
+					for filename, entry in src_chal.load_static_files().items()
+				]))
 
 			# finalize status message
 			progress.update(tid, description=f"Applied changes to {chal_desc}", total=1, completed=1)
