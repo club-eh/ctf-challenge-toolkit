@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cctk"
-version = "0.2.1"
+version = "0.3.0"
 description = "CTF Challenge ToolKit - for automated challenge management."
 authors = ["Thomas Bork <sudoBash418@gmail.com>"]
 

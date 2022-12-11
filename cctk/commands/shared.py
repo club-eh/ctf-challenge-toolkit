@@ -241,7 +241,10 @@ class DeployTarget:
 
 			# update files
 			progress.update(tid, description=f"Updating files for {chal_desc}")
-			await self.api.update_files(ChallengeFiles(cid_hash, [ChallengeFiles.File(fn, entry.content_hash, entry.data) for fn, entry in src_chal.load_static_files().items()]))
+			await self.api.update_files(ChallengeFiles(cid_hash, [
+				ChallengeFiles.File(filename, entry.content_hash, entry.data)
+				for filename, entry in src_chal.load_static_files().items()
+			]))
 
 			# finalize status message
 			progress.update(tid, description=f"Applied changes to {chal_desc}", total=1, completed=1)
@@ -249,6 +252,15 @@ class DeployTarget:
 
 
 	def compare_against_sources(self, deploy_src: DeploySource) -> dict[str, ChallengeChanges]:
+		"""Compare the given live state against the local, intended state.
+
+		Args:
+			deploy_src: The DeploySource representing the live CTFd state.
+
+		Returns:
+			A dict mapping challenge IDs to `ChallengeChanges` objects describing the differences.
+		"""
+
 		changes = dict()
 
 		for cid, tgt_chal in self.challenges.items():

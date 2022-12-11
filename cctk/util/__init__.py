@@ -5,7 +5,7 @@ import functools
 
 def _fnv_1a_64(text: bytes) -> int:
 	"""Computes the 64-bit FNV-1a hash of an input string.
-	
+
 	See http://www.isthe.com/chongo/tech/comp/fnv/#FNV-1a
 	"""
 
@@ -20,7 +20,7 @@ def _fnv_1a_64(text: bytes) -> int:
 @functools.lru_cache(128)
 def challenge_id_hash(challenge_id: str) -> int:
 	"""Implements a variation of FNV-1a to derive a 28-bit integer hash from a string ID.
-	
+
 	Hash values will be positive integers in the range `[2^28, 2*2^28)`
 
 	28-bits was chosen to easily fit within the unsigned portion of a signed 32-bit integer,
