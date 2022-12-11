@@ -28,19 +28,21 @@ class CTFdAPI:
 		self._token = api_token
 		self._cache = self._Cache()
 
+		# store default HTTP headers
+		self._headers = {
+			# request JSON for responses
+			"Accept": "application/json",
+			# literally required for API requests to work at all (wtf)
+			"Content-Type": "application/json",
+			# add API token to all requests
+			"Authorization": f"Token {self._token}",
+		}
+
 		# create shared HTTP client
 		self._client = httpx.AsyncClient(
 			http2 = True,
 			# set base URL for all requests
 			base_url = self._url,
-			headers = {
-				# request JSON for responses
-				"Accept": "application/json",
-				# literally required for API requests to work at all (wtf)
-				"Content-Type": "application/json",
-				# add API token to all requests
-				"Authorization": f"Token {self._token}",
-			},
 			# configure default timeout for each request
 			timeout = API_TIMEOUT,
 		)
@@ -67,7 +69,7 @@ class CTFdAPI:
 			pass
 
 		# make the API request
-		resp = await self._client.get(f"/api/v1/challenges/{challenge_id}")
+		resp = await self._client.get(f"/api/v1/challenges/{challenge_id}", headers=self._headers)
 
 		# return None if challenge does not exist
 		if resp.status_code == 404:
@@ -101,7 +103,7 @@ class CTFdAPI:
 		self._cache.challenges.pop(challenge.id, None)
 
 		# make the API request
-		resp = await self._client.post(f"/api/v1/challenges", json=self.converter.unstructure(challenge))
+		resp = await self._client.post(f"/api/v1/challenges", json=self.converter.unstructure(challenge), headers=self._headers)
 
 		# throw an exception for failures
 		resp.raise_for_status()
@@ -118,7 +120,7 @@ class CTFdAPI:
 		self._cache.challenges.pop(challenge_id, None)
 
 		# make the API request
-		resp = await self._client.delete(f"/api/v1/challenges/{challenge_id}")
+		resp = await self._client.delete(f"/api/v1/challenges/{challenge_id}", headers=self._headers)
 		# throw an exception for failures
 		resp.raise_for_status()
 
@@ -154,7 +156,7 @@ class CTFdAPI:
 		self._cache.challenges.pop(challenge.id, None)
 
 		# make the API request
-		resp = await self._client.patch(f"/api/v1/challenges/{challenge.id}", json=self.converter.unstructure(challenge))
+		resp = await self._client.patch(f"/api/v1/challenges/{challenge.id}", json=self.converter.unstructure(challenge), headers=self._headers)
 
 		# throw an exception for failures
 		resp.raise_for_status()
@@ -177,7 +179,7 @@ class CTFdAPI:
 			pass
 
 		# make the API request
-		resp = await self._client.get(f"/api/v1/challenges/{challenge_id}/tags")
+		resp = await self._client.get(f"/api/v1/challenges/{challenge_id}/tags", headers=self._headers)
 		# throw an exception for failures
 		resp.raise_for_status()
 
@@ -195,11 +197,11 @@ class CTFdAPI:
 		return structured
 
 	async def _create_tag(self, challenge_id: int, tag_value: str):
-		resp = await self._client.post(f"/api/v1/tags", json={"challenge_id": challenge_id, "value": tag_value})
+		resp = await self._client.post(f"/api/v1/tags", json={"challenge_id": challenge_id, "value": tag_value}, headers=self._headers)
 		resp.raise_for_status()
 
 	async def _delete_tag(self, tag_id: int):
-		resp = await self._client.delete(f"/api/v1/tags/{tag_id}")
+		resp = await self._client.delete(f"/api/v1/tags/{tag_id}", headers=self._headers)
 		resp.raise_for_status()
 
 	async def update_tags(self, target_tags: ChallengeTags, dry_run: bool = False) -> bool:
@@ -253,7 +255,7 @@ class CTFdAPI:
 			pass
 
 		# make the API request
-		resp = await self._client.get(f"/api/v1/challenges/{challenge_id}/hints")
+		resp = await self._client.get(f"/api/v1/challenges/{challenge_id}/hints", headers=self._headers)
 		# throw an exception for failures
 		resp.raise_for_status()
 
@@ -271,11 +273,11 @@ class CTFdAPI:
 		return structured
 
 	async def _create_hint(self, challenge_id: int, hint_content: str):
-		resp = await self._client.post(f"/api/v1/hints", json={"challenge_id": challenge_id, "content": hint_content})
+		resp = await self._client.post(f"/api/v1/hints", json={"challenge_id": challenge_id, "content": hint_content}, headers=self._headers)
 		resp.raise_for_status()
 
 	async def _delete_hint(self, hint_id: int):
-		resp = await self._client.delete(f"/api/v1/hints/{hint_id}")
+		resp = await self._client.delete(f"/api/v1/hints/{hint_id}", headers=self._headers)
 		resp.raise_for_status()
 
 	async def update_hints(self, target_hints: ChallengeHints, dry_run: bool = False) -> bool:
@@ -329,7 +331,7 @@ class CTFdAPI:
 			pass
 
 		# make the API request
-		resp = await self._client.get(f"/api/v1/challenges/{challenge_id}/flags")
+		resp = await self._client.get(f"/api/v1/challenges/{challenge_id}/flags", headers=self._headers)
 		# throw an exception for failures
 		resp.raise_for_status()
 
@@ -347,11 +349,11 @@ class CTFdAPI:
 		return structured
 
 	async def _create_flag(self, challenge_id: int, flag_content: str):
-		resp = await self._client.post(f"/api/v1/flags", json={"challenge_id": challenge_id, "content": flag_content})
+		resp = await self._client.post(f"/api/v1/flags", json={"challenge_id": challenge_id, "content": flag_content}, headers=self._headers)
 		resp.raise_for_status()
 
 	async def _delete_flag(self, flag_id: int):
-		resp = await self._client.delete(f"/api/v1/flags/{flag_id}")
+		resp = await self._client.delete(f"/api/v1/flags/{flag_id}", headers=self._headers)
 		resp.raise_for_status()
 
 	async def update_flags(self, target_flags: ChallengeFlags, dry_run: bool = False) -> bool:
