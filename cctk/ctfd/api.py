@@ -1,3 +1,5 @@
+import io
+
 import anyio
 import attrs
 from cattrs.preconf.json import make_converter
@@ -19,6 +21,7 @@ class CTFdAPI:
 		tags: dict[int, ChallengeTags] = attrs.field(factory=dict)
 		hints: dict[int, ChallengeHints] = attrs.field(factory=dict)
 		flags: dict[int, ChallengeFlags] = attrs.field(factory=dict)
+		files: dict[int, ChallengeFiles] = attrs.field(factory=dict)
 
 	# cattrs JSON converter
 	converter = make_converter()
@@ -389,5 +392,112 @@ class CTFdAPI:
 		# create target flags (serially, so the order is preserved -_-)
 		for flag in target_flags.flags:
 			await self._create_flag(target_flags.id, flag.content)
+
+		return True
+
+
+	async def get_files(self, challenge_id: int) -> ChallengeFiles:
+		"""Get files of an existing CTFd challenge.
+
+		Args:
+			challenge_id (int): The ID of the challenge to return info for.
+		"""
+
+		# use cache if available
+		try:
+			return self._cache.files[challenge_id]
+		except KeyError:
+			pass
+
+		# make the API request
+		resp = await self._client.get(f"/api/v1/challenges/{challenge_id}/files", headers=self._headers)
+		# throw an exception for failures
+		resp.raise_for_status()
+
+		# parse JSON response
+		raw = resp.json()
+
+		# sanity check (if status code is 200, success *should* be True)
+		assert raw["success"]
+
+		# structure the data
+		structured = self.converter.structure({
+			"id": challenge_id,
+			"files": [{**item, "filename": item['location'].rsplit('/', 1)[-1]} for item in raw["data"]],
+		}, ChallengeFiles)
+
+		# cache + return
+		self._cache.files[challenge_id] = structured
+		return structured
+
+	async def _create_file(self, challenge_id: int, filename: str, content_hash: str, file_data: io.BytesIO):
+		resp = await self._client.post(f"/api/v1/files",
+			data={
+				"type": "challenge",
+				"challenge_id": challenge_id,
+				"content_label": content_hash,
+			},
+			files={"file": (filename, file_data)},
+			headers={ k : v for k, v in self._headers.items() if k != "Content-Type" },
+		)
+		resp.raise_for_status()
+
+	async def _delete_file(self, file_id: int):
+		resp = await self._client.delete(f"/api/v1/files/{file_id}", headers=self._headers)
+		resp.raise_for_status()
+
+	async def update_files(self, target_files: ChallengeFiles, dry_run: bool = False) -> bool:
+		"""Replace all files on a challenge with the given files.
+
+		Args:
+			target_files (ChallengeFiles): The challenge files that should exist.
+			dry_run (bool): If True, skip making any changes.
+
+		Returns:
+			True if changes were / would be made, False otherwise.
+		"""
+
+		def _file_attributes(files: ChallengeFiles) -> set[tuple[str, str]]:
+			return set((file.filename, file.content_label) for file in files.files)
+
+		# get pre-existing files
+		initial_files = await self.get_files(target_files.id)
+
+		# determine if we need to add/remove anything
+		if _file_attributes(initial_files) == _file_attributes(target_files):
+			# no changes required
+			return False
+		elif dry_run:
+			# this is a dry-run, skip making changes
+			return True
+
+		# drop cache entry if it exists
+		self._cache.flags.pop(target_files.id, None)
+
+		# remove any files that shouldn't exist
+		for file_attrs in _file_attributes(initial_files) - _file_attributes(target_files):
+			# get file ID
+			file_id = None
+			for initial_file in initial_files.files:
+				if (initial_file.filename, initial_file.content_label) == file_attrs:
+					file_id = initial_file.id
+					break
+			assert file_id is not None
+
+			# delete file
+			await self._delete_file(file_id)
+
+		# upload missing files
+		for file_attrs in _file_attributes(target_files) - _file_attributes(initial_files):
+			# get File object
+			file = None
+			for tgt_file in target_files.files:
+				if (tgt_file.filename, tgt_file.content_label) == file_attrs:
+					file = tgt_file
+			assert file is not None
+			assert file.data is not None
+
+			# upload file
+			await self._create_file(target_files.id, file.filename, file.content_label, file.data)
 
 		return True

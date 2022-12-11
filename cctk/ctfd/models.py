@@ -1,6 +1,7 @@
 """Representations of CTFd API requests and responses."""
 
 import enum
+import io
 
 import attrs
 
@@ -152,3 +153,30 @@ class ChallengeFlags:
 				return False
 		# no differences found
 		return True
+
+
+@attrs.define
+class ChallengeFiles:
+	"""Model for reading/writing challenge files.
+
+	- (read) `GET /challenges/{challenge_id}/files`
+	- (create) `POST /files`
+	- (delete) `DELETE /files/{file_id}`
+	"""
+
+	@attrs.define(eq=False)  # eq=False enables hash-by-id
+	class File:
+		"""An individual challenge file."""
+		filename: str
+		content_label: str
+		data: io.BytesIO | None = None
+		id: int | None = None
+
+	# Numeric challenge ID (database index)
+	id: int
+	# List of file objects
+	files: list[File]
+
+	def as_str_set(self) -> set[File]:
+		"""Returns a set of the file entries."""
+		return set(self.files)
