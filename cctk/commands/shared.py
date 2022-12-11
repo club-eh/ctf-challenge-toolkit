@@ -280,7 +280,7 @@ class DeployTarget:
 			# compare base challenge data
 			if tgt_chal.name != src_chal.config.name:
 				changes[cid] |= ChallengeChanges.NAME
-			if tgt_chal.description != src_chal.config.description:
+			if tgt_chal.description.replace("\r\n", "\n") != src_chal.config.description:
 				changes[cid] |= ChallengeChanges.DESCRIPTION
 			if tgt_chal.category != src_chal.config.category:
 				changes[cid] |= ChallengeChanges.CATEGORY
