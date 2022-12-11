@@ -75,19 +75,21 @@ async def deploy(ctx: click.Context, url: str | None, api_token: str | None, cha
 	# initialize DeployTarget
 	deploy_tgt = DeployTarget(api, verbose=app_cfg.verbose)
 
-	# retrieve CTFd state
 	semaphore = anyio.Semaphore(CONCURRENT_READS)
 	progress = Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), TimeElapsedColumn(), console=CONSOLE)
 	progress.start()
 	try:
+		# retrieve CTFd state
 		async with anyio.create_task_group() as tg:
 			for challenge in deploy_src.challenges.values():
 				tg.start_soon(deploy_tgt.get_challenge_info, semaphore, progress, challenge.challenge_id)
+
+		# determine required changes
+		tid = progress.add_task("Comparing intended state to live state")
+		required_changes = deploy_tgt.compare_against_sources(deploy_src)
+		progress.stop_task(tid)
 	finally:
 		progress.stop()
-
-	# determine required changes
-	required_changes = deploy_tgt.compare_against_sources(deploy_src)
 
 	# generate change table
 	changes_table: RenderableType
