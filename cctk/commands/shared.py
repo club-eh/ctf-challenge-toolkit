@@ -228,22 +228,22 @@ class DeployTarget:
 				await self.api.update_challenge(intended_chal)
 
 			# update tags
-			if ChallengeChanges.TAGS in changes:
+			if ChallengeChanges.TAGS | ChallengeChanges.CREATE_NEW & changes:
 				progress.update(tid, description=f"Updating tags for {chal_desc}")
 				await self.api.update_tags(ChallengeTags(cid_hash, [ChallengeTags.Tag(v) for v in src_chal.get_tag_list()]))
 
 			# update hints
-			if ChallengeChanges.HINTS in changes:
+			if ChallengeChanges.HINTS | ChallengeChanges.CREATE_NEW & changes:
 				progress.update(tid, description=f"Updating hints for {chal_desc}")
 				await self.api.update_hints(ChallengeHints(cid_hash, [ChallengeHints.Hint(v) for v in src_chal.config.hints]))
 
 			# update flags
-			if ChallengeChanges.FLAGS in changes:
+			if ChallengeChanges.FLAGS | ChallengeChanges.CREATE_NEW & changes:
 				progress.update(tid, description=f"Updating flags for {chal_desc}")
 				await self.api.update_flags(ChallengeFlags(cid_hash, [ChallengeFlags.Flag(src_chal.config.flag)]))
 
 			# update files
-			if ChallengeChanges.FILES in changes:
+			if ChallengeChanges.FILES | ChallengeChanges.CREATE_NEW & changes:
 				progress.update(tid, description=f"Updating files for {chal_desc}")
 				await self.api.update_files(ChallengeFiles(cid_hash, [
 					ChallengeFiles.File(filename, entry.content_hash, entry.data)
