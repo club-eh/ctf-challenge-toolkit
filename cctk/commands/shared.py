@@ -295,6 +295,11 @@ class DeployTarget:
 			if self.hints[cid].as_str_list() != src_chal.config.hints:  # type: ignore[union-attr]
 				changes[cid] |= ChallengeChanges.HINTS
 
+			# compare challenge flag types (should always be static)
+			for flag in self.flags[cid].flags:  # type: ignore[union-attr]
+				if flag.type != "static":
+					changes[cid] |= ChallengeChanges.FLAGS
+
 			# compare challenge flags
 			if self.flags[cid].as_str_list() != [src_chal.config.flag]:  # type: ignore[union-attr]
 				changes[cid] |= ChallengeChanges.FLAGS

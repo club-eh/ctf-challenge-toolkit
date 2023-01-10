@@ -133,6 +133,7 @@ class ChallengeFlags:
 		"""An individual challenge flag."""
 		content: str
 		id: int | None = None
+		type: str | None = "static"
 
 	# Numeric challenge ID (database index)
 	id: int
@@ -147,8 +148,10 @@ class ChallengeFlags:
 		# compare list length
 		if len(self.flags) != len(other.flags):
 			return False
-		# compare tag values
+		# compare tag types and values
 		for a, b in zip(self.flags, other.flags):
+			if a.type != b.type:
+				return False
 			if a.content != b.content:
 				return False
 		# no differences found

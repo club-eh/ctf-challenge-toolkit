@@ -351,8 +351,8 @@ class CTFdAPI:
 		self._cache.flags[challenge_id] = structured
 		return structured
 
-	async def _create_flag(self, challenge_id: int, flag_content: str):
-		resp = await self._client.post(f"/api/v1/flags", json={"challenge_id": challenge_id, "content": flag_content}, headers=self._headers)
+	async def _create_flag(self, challenge_id: int, flag_content: str, flag_type: str):
+		resp = await self._client.post(f"/api/v1/flags", json={"challenge_id": challenge_id, "content": flag_content, "type": flag_type}, headers=self._headers)
 		resp.raise_for_status()
 
 	async def _delete_flag(self, flag_id: int):
@@ -391,7 +391,7 @@ class CTFdAPI:
 
 		# create target flags (serially, so the order is preserved -_-)
 		for flag in target_flags.flags:
-			await self._create_flag(target_flags.id, flag.content)
+			await self._create_flag(target_flags.id, flag.content, flag.type if flag.type is not None else "static")
 
 		return True
 
