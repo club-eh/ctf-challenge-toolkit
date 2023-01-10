@@ -32,7 +32,8 @@ class ChallengeChanges(enum.Flag):
 	NAME = enum.auto()
 	DESCRIPTION = enum.auto()
 	CATEGORY = enum.auto()
-	POINTS = enum.auto()
+	SCORING_RANGE = enum.auto()  # initial and/or final parameters
+	SCORING_DECAY = enum.auto()  # decay parameter
 
 	TAGS = enum.auto()
 	HINTS = enum.auto()
@@ -215,7 +216,9 @@ class DeployTarget:
 				name=src_chal.config.name,
 				description=src_chal.config.description,
 				category=src_chal.config.category,
-				value=src_chal.config.points,
+				initial=src_chal.get_dynamic_scoring_params(deploy_src.repo)['initial'],
+				minimum=src_chal.get_dynamic_scoring_params(deploy_src.repo)['final'],
+				decay=src_chal.get_dynamic_scoring_params(deploy_src.repo)['decay'],
 			)
 
 			if ChallengeChanges.CREATE_NEW in changes:
@@ -284,8 +287,12 @@ class DeployTarget:
 				changes[cid] |= ChallengeChanges.DESCRIPTION
 			if tgt_chal.category != src_chal.config.category:
 				changes[cid] |= ChallengeChanges.CATEGORY
-			if tgt_chal.value != src_chal.config.points:
-				changes[cid] |= ChallengeChanges.POINTS
+			if tgt_chal.initial != src_chal.get_dynamic_scoring_params(deploy_src.repo)['initial']:
+				changes[cid] |= ChallengeChanges.SCORING_RANGE
+			if tgt_chal.minimum != src_chal.get_dynamic_scoring_params(deploy_src.repo)['final']:
+				changes[cid] |= ChallengeChanges.SCORING_RANGE
+			if tgt_chal.decay != src_chal.get_dynamic_scoring_params(deploy_src.repo)['decay']:
+				changes[cid] |= ChallengeChanges.SCORING_DECAY
 
 			# compare challenge tags
 			if self.tags[cid].as_str_list() != src_chal.get_tag_list():  # type: ignore[union-attr]
@@ -335,7 +342,8 @@ class DeployTarget:
 						ChallengeChanges.NAME: Text("Name", style="changes.update"),
 						ChallengeChanges.DESCRIPTION: Text("Description", style="changes.update"),
 						ChallengeChanges.CATEGORY: Text("Category", style="changes.update"),
-						ChallengeChanges.POINTS: Text("Points", style="changes.update"),
+						ChallengeChanges.SCORING_RANGE: Text("Point Range", style="changes.update"),
+						ChallengeChanges.SCORING_DECAY: Text("Point Decay", style="changes.update"),
 						ChallengeChanges.TAGS: Text("Tags", style="changes.update"),
 						ChallengeChanges.HINTS: Text("Hints", style="changes.update"),
 						ChallengeChanges.FLAGS: Text("Flags", style="changes.update"),

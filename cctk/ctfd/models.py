@@ -14,6 +14,7 @@ class ChallengeState(enum.Enum):
 class ChallengeType(enum.Enum):
 	"""Challenge instance type"""
 	STANDARD = "standard"
+	DYNAMIC = "dynamic"
 
 
 @attrs.define
@@ -31,8 +32,10 @@ class Challenge:
 	name: str
 	# Challenge category
 	category: str
-	# Number of points to award players for solving (static)
-	value: int
+	# Dynamic scoring parameters
+	initial: int
+	minimum: int
+	decay: int
 	# Description (Markdown/HTML)
 	description: str = ""
 	# Player visibility
@@ -40,7 +43,7 @@ class Challenge:
 	# Maximum number of attempts allowed (zero means unlimited)
 	max_attempts: int = 0
 	# CTFd challenge type
-	type: ChallengeType = ChallengeType.STANDARD
+	type: ChallengeType = ChallengeType.DYNAMIC
 	# (optional) Connection info to show players
 	connection_info: str | None = None
 	# (optional) ID of challenge to point players to after solving this challenge

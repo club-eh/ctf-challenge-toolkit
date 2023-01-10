@@ -53,8 +53,6 @@ class ChallengeConfigScoring(Schema):
 	"""Marshmallow schema for the [scoring] section of the challenge config."""
 
 	flag = fields.String(required=True)
-	# NOTE: subject to change (scoring might be determined by difficulty)
-	points = fields.Integer(strict=True)
 
 
 class ChallengeConfigStatic(Schema):

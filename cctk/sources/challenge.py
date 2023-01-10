@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import decimal
-from functools import total_ordering
+import functools
 import hashlib
 import io
 from itertools import chain
@@ -53,7 +53,6 @@ class ChallengeConfig:
 	tags: list[str]
 
 	flag: str
-	points: int
 
 	hints: list[str]
 
@@ -128,12 +127,6 @@ class ChallengeConfig:
 			pen.warn("challenge-config-missing-description", "Challenge config does not specify a description")
 			final_data["description"] = None
 
-		if "points" in clean_scoring:
-			final_data["points"] = clean_scoring["points"]
-		else:
-			pen.warn("challenge-config-missing-points", "Challenge config does not specify a point value; defaulting to 0")
-			final_data["points"] = 0
-
 		# build + return the object
 		return cls(**final_data)
 
@@ -144,7 +137,7 @@ class StaticFileEntry:
 	data: io.BytesIO
 
 
-@total_ordering
+@functools.total_ordering
 class Challenge:
 	"""Interface to a challenge directory."""
 
@@ -440,3 +433,16 @@ class Challenge:
 	def drop_static_files(self):
 		"""Drop cached static files from memory."""
 		self._static_files = None
+
+	@functools.cache
+	def get_dynamic_scoring_params(self, repo: ChallengeRepo) -> dict[str, int]:
+		"""Returns the dynamic scoring parameters for this challenge (`initial`, `final`, and `decay`).
+
+		All values are derived from this challenge's difficulty and the repo scoring configuration.
+		"""
+
+		return {
+			"initial": repo.config.scoring.initial[self.config.difficulty.value],
+			"final": repo.config.scoring.final[self.config.difficulty.value],
+			"decay": repo.config.scoring.decay[self.config.difficulty.value] * repo.config.scoring.expected_player_count,
+		}

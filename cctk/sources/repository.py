@@ -11,14 +11,24 @@ import marshmallow
 
 from cctk import tomllib
 from cctk.constants import CHALLENGE_CONFIG_FILENAME, REPO_CONFIG_FILENAME
+from cctk.schemas.challenge import ChallengeDifficulty
 from cctk.schemas.formatting import format_validation_exception
 from cctk.schemas.repository import ChallengeRepoConfigSchema
 from cctk.validation import Severity, Source, ValidationBook, ValidationError
 
 
 @attrs.define(frozen=True)
+class ChallengeRepoScoringConfig:
+	expected_player_count: int
+	initial: dict[ChallengeDifficulty, int]
+	final: dict[ChallengeDifficulty, int]
+	decay: dict[ChallengeDifficulty, float]
+
+
+@attrs.define(frozen=True)
 class ChallengeRepoConfig:
 	categories: list[str]
+	scoring: ChallengeRepoScoringConfig
 	url: str | None = None
 
 
@@ -42,9 +52,30 @@ class ChallengeRepoConfig:
 				format_validation_exception(exc.messages, "Repository config file failed schema validation"))
 			raise ValidationError
 
+		# rebuild dictionary
+		final_data = {
+			"categories": cleaned_data["categories"],
+			"url": cleaned_data["url"],
+			"scoring": ChallengeRepoScoringConfig(**cleaned_data["scoring"]),
+		}
+
 		# TODO: custom validation steps (for warnings and non-strict-schema issues)
 
-		return cls(**cleaned_data)
+		# build final object
+		obj = cls(**final_data)
+
+		# ensure scoring parameters exist for each difficulty
+		raised_err = False
+		for difficulty in ["easy", "medium", "hard"]:
+			for param in ["initial", "final", "decay"]:
+				if difficulty not in getattr(obj.scoring, param).keys():
+					pen.issue(Severity.ERROR, "repository-config-scoring-missing-difficulty",
+						f"Repository config file is missing the '{param}' scoring parameter for the '{difficulty}' difficulty")
+					raised_err = True
+		if raised_err:
+			raise ValidationError
+
+		return obj
 
 
 class ChallengeRepo:
