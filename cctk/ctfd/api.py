@@ -43,7 +43,8 @@ class CTFdAPI:
 
 		# create shared HTTP client
 		self._client = httpx.AsyncClient(
-			http2 = True,
+			# http2 seems to cause intermittent connection errors
+			http2 = False,
 			# set base URL for all requests
 			base_url = self._url,
 			# configure default timeout for each request
