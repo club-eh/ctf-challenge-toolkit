@@ -16,7 +16,7 @@ rich = "^12.5.1"
 tomli = { version = "^2.0.1", python = "<3.11" }  # Python >=3.11 distributes tomllib in the stdlib
 attrs = "^22.1.0"
 cattrs = "^22.2.0"
-marshmallow = "^3.17.1"
+marshmallow = "^3.18.0"
 httpx = { version = "^0.23.1", extras = ["http2", "socks"] }
 
 [tool.poetry.dev-dependencies]
