@@ -343,6 +343,9 @@ class Challenge:
 		# strip prefixes (make paths relative to challenge directory)
 		self._static_file_list = [abs_path.relative_to(self.path) for abs_path in self._static_file_list]
 
+		# sort to maintain determinism
+		self._static_file_list.sort()
+
 		# return results
 		return self._static_file_list
 
