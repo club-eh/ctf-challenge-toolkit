@@ -41,18 +41,14 @@ class ChallengeConfigMeta(Schema):
 	difficulty = fields.Enum(ChallengeDifficulty, by_value=True, required=True)
 	description = fields.String(required=False)  # not required for development
 	tags = fields.List(fields.String(), required=False, load_default=list)
+	flag = fields.String(required=False)
+	flags = fields.List(fields.String(), required=False, load_default=list)
 
 
 class ChallengeConfigHint(Schema):
 	"""Marshmallow schema for the [[hints]] sections of the challenge config."""
 
 	content = fields.String(required=True)
-
-
-class ChallengeConfigScoring(Schema):
-	"""Marshmallow schema for the [scoring] section of the challenge config."""
-
-	flag = fields.String(required=True)
 
 
 class ChallengeConfigStatic(Schema):
@@ -75,7 +71,6 @@ class ChallengeConfigSchema(Schema):
 	"""Marshmallow schema for the challenge config file."""
 
 	meta = fields.Nested(ChallengeConfigMeta, required=True)
-	scoring = fields.Nested(ChallengeConfigScoring, required=True)
 	hints = fields.List(fields.Nested(ChallengeConfigHint), required=False)
 	static = fields.Nested(ChallengeConfigStatic, required=False)
 	dynamic = fields.Dict(keys=fields.String(validate=VALIDATORS_STRING_ID), values=fields.Nested(ChallengeConfigDynamic), required=False)

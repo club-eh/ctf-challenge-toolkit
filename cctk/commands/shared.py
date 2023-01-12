@@ -243,7 +243,7 @@ class DeployTarget:
 			# update flags
 			if ChallengeChanges.FLAGS | ChallengeChanges.CREATE_NEW & changes:
 				progress.update(tid, description=f"Updating flags for {chal_desc}")
-				await self.api.update_flags(ChallengeFlags(cid_hash, [ChallengeFlags.Flag(src_chal.config.flag)]))
+				await self.api.update_flags(ChallengeFlags(cid_hash, [ChallengeFlags.Flag(v) for v in src_chal.config.flags]))
 
 			# update files
 			if ChallengeChanges.FILES | ChallengeChanges.CREATE_NEW & changes:
@@ -308,7 +308,7 @@ class DeployTarget:
 					changes[cid] |= ChallengeChanges.FLAGS
 
 			# compare challenge flags
-			if self.flags[cid].as_str_list() != [src_chal.config.flag]:  # type: ignore[union-attr]
+			if self.flags[cid].as_str_list() != src_chal.config.flags:  # type: ignore[union-attr]
 				changes[cid] |= ChallengeChanges.FLAGS
 
 			# compare challenge files

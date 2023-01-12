@@ -51,9 +51,7 @@ class ChallengeConfig:
 	difficulty: ChallengeDifficulty
 	description: str | None
 	tags: list[str]
-
-	flag: str
-
+	flags: list[str]
 	hints: list[str]
 
 	static: StaticConfig
@@ -90,7 +88,6 @@ class ChallengeConfig:
 
 		# partially destructure
 		clean_meta = cleaned_data["meta"]
-		clean_scoring = cleaned_data["scoring"]
 
 		# rebuild dictionary to match constructor parameters
 		final_data = {
@@ -98,8 +95,6 @@ class ChallengeConfig:
 			"category": clean_meta["category"],
 			"difficulty": clean_meta["difficulty"],
 			"tags": clean_meta["tags"],
-
-			"flag": clean_scoring["flag"],
 
 			# collapse list of hint structures
 			"hints": [hint["content"] for hint in cleaned_data.get("hints", [])],
@@ -126,6 +121,18 @@ class ChallengeConfig:
 		else:
 			pen.warn("challenge-config-missing-description", "Challenge config does not specify a description")
 			final_data["description"] = None
+
+		if "flag" in clean_meta and len(clean_meta["flags"]):
+			pen.issue(Severity.ERROR, "challenge-config-flag-mutex",
+				"Challenge config specified both 'flag' and 'flags' mutually-exclusive fields")
+			raise ValidationError
+		elif "flag" in clean_meta:
+			final_data["flags"] = [clean_meta["flag"]]
+		elif len(clean_meta["flags"]):
+			final_data["flags"] = clean_meta["flags"]
+		else:
+			pen.warn("challenge-config-missing-flag", "Challenge config does not specify any flags")
+			final_data["flags"] = []
 
 		# build + return the object
 		return cls(**final_data)
