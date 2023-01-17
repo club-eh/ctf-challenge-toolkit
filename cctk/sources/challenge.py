@@ -421,7 +421,7 @@ class Challenge:
 			archive.close()
 
 			# add archive to file list
-			file_contents[f"challenge-files.tar"] = archive_buf
+			file_contents[f"{self.challenge_id}.tar"] = archive_buf
 		else:
 			# read files into memory
 			for filepath in self._get_all_static_files():
