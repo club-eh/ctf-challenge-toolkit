@@ -2,7 +2,8 @@
 
 A CLI tool for automating challenge management and deployment.
 
-Currently only supports CTFd.
+Requires a modified version of CTFd, available [here](https://git.sb418.net/sudoBash418/CTFd/src/branch/feat-files-content-label).  
+Specifically, this branch adds a `content_label` DB field to files and exposes it through the API.
 
 
 ## Installation
